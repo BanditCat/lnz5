@@ -87,7 +87,7 @@ parseError t = failP ("Parse error on " ++ show t)
 data Exp
   = A Exp Exp
   | L String Exp
-  | F Exp
+  | F Int
 
 data Line
   = Eq String Exp
@@ -100,10 +100,10 @@ lambdafy [] f e = f e
 lambdafy (h:t) f e = this
   where this = L h bdy
         bdy = lambdafy t f e'
-        e' = addLocal e (h,this)
+        e' = addLocal e h
         
-addLocal :: Env -> (String,Exp) -> Env
-addLocal (E l g) h = E (h:l) g
+addLocal :: Env -> String -> Env
+addLocal (E l g) h = E ((h,0):(map (\(s,i) -> (s,i+1)) l)) g
 
 getLines :: Program -> [Line]
 getLines (Pr l) = l
@@ -116,7 +116,7 @@ getEnv (Pr ((Eq nm e):t)) = (nm, e):(getEnv (Pr t))
 -- The monad
 data ParseResult a = Ok a | Failed String
 data ParsePosition = Location String Int Int
-data Env = E [(String,Exp)]  [(String,Exp)]
+data Env = E [(String,Int)]  [(String,Exp)]
 type P a = String -> ParsePosition -> ParseResult a
 
 thenP :: P a -> (a -> P b) -> P b
@@ -198,7 +198,7 @@ lineToString (Eq s exp) = s ++ " = " ++ expToString exp ++ ";\n"
 expToString :: Exp -> String
 expToString (A func arg) = "[" ++ expToString func ++ " " ++ expToString arg ++ "]"
 expToString (L nm bdy) = "[\\" ++ nm ++ "." ++ expToString bdy ++ "]"
-expToString (F (L nm _)) = nm
+expToString (F i) = show i
 
 
 }

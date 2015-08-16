@@ -12,7 +12,7 @@ all: debug
 CC=gcc
 GHC=ghc
 HAPPY=happy
-GHCFLAGS=-Wall -Werror -XConstrainedClassMethods -XDeriveDataTypeable -XDeriveFoldable -XDeriveFunctor -XDeriveGeneric -XDeriveTraversable -XEmptyDataDecls -XExistentialQuantification -XExplicitNamespaces -XFlexibleContexts -XFlexibleInstances -XForeignFunctionInterface -XFunctionalDependencies -XGeneralizedNewtypeDeriving -XImplicitParams -XKindSignatures -XLiberalTypeSynonyms -XMagicHash -XMultiParamTypeClasses -XParallelListComp -XPatternGuards -XPostfixOperators -XRankNTypes -XRecursiveDo -XScopedTypeVariables -XStandaloneDeriving -XTypeOperators -XTypeSynonymInstances -XUnboxedTuples -XUnicodeSyntax -XUnliftedFFITypes
+GHCFLAGS=-Wall -XConstrainedClassMethods -XDeriveDataTypeable -XDeriveFoldable -XDeriveFunctor -XDeriveGeneric -XDeriveTraversable -XEmptyDataDecls -XExistentialQuantification -XExplicitNamespaces -XFlexibleContexts -XFlexibleInstances -XForeignFunctionInterface -XFunctionalDependencies -XGeneralizedNewtypeDeriving -XImplicitParams -XKindSignatures -XLiberalTypeSynonyms -XMagicHash -XMultiParamTypeClasses -XParallelListComp -XPatternGuards -XPostfixOperators -XRankNTypes -XRecursiveDo -XScopedTypeVariables -XStandaloneDeriving -XTypeOperators -XTypeSynonymInstances -XUnboxedTuples -XUnicodeSyntax -XUnliftedFFITypes
 HAPPYFLAGS=-a -g -c -i
 
 
@@ -36,8 +36,8 @@ lcparser.hs: lcparser.y
 	$(HAPPY) $(HAPPYFLAGS) $< -o $@
 
 $(TARGET): $(HS) $(OBJS)
-	$(GHC) main.hs $(OBJS) -o $@ 
-	$(STRIP)
+	$(GHC) $(GHCFLAGS) main.hs $(OBJS) -o $@ 
+	$(STRIP)   
 	$(PACK)
 
 TAGS: $(HS)
@@ -53,7 +53,7 @@ release: PACK:=upx --best $(TARGET)
 
 .PHONY: debug 
 debug: $(TARGET)
-debug: CCFLAGS:=$(TARGETDEFINE) -DDEBUG $(CCFLAGS)
+debug: GHCFLAGS:= $(GHCFLAGS)
 
 
 .PHONY: clean
@@ -63,11 +63,12 @@ clean:
 .PHONY: backup
 backup: clean release
 	git add -A
-	git commit -a -m "$(shell cat ~/lnz4/workingon.txt)" || true
+	git commit -a -m "$(shell cat ~/lnz5/workingon.txt)" || true
 
 .PHONY: run
 run: all
-	./$(TARGET)
+	./$(TARGET) -o lnz.svg
+	start chrome lnz.svg
 
 .PHONY: unixify
 unixify:
