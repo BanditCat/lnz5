@@ -7,6 +7,8 @@ import qualified Data.List as List
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
 
+
+
   -- Lamping graph node type
 data N
   = LGA Int Int Int
@@ -19,6 +21,8 @@ data N
   | LGR Int
   | LGN Int
   deriving (Eq, Ord, Show)
+
+instance IsName N
 
 isLambda :: N -> Bool
 isLambda (LGL _ _ _) = True
@@ -163,83 +167,187 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                  fromVertices [p2 (0.2, 0.2),p2 (-0.2, -0.2)] <> 
                  fromVertices [p2 (-0.2, 0.2),p2 (0.2, -0.2)]) # lineWidth 1.5
         (m', s'', d) = case n ! v of
-          (LGA _ f a) -> (m3, s4, text' "@" === strutY nsep ===
-                              (fd ||| strutX nsep ||| ad) # centerXY)
+          nd@(LGA p f a) -> (m3, s4,
+                             (text "" # named p #
+                              translate (rotateBy 0 (r2 (0, 0.5)))) <>
+                             (text "" # named f #
+                              translate (rotateBy 0.3333333 (r2 (0, 0.5)))) <>
+                             (text "" # named a #
+                              translate (rotateBy 0.6666667 (r2 (0, 0.5)))) <>
+                             (text' "@" # named nd === strutY nsep ===
+                                 (fd ||| strutX nsep ||| ad) # centerXY))
             where (m2, s3, fd) = diagramGraph' lg (e ! f) m s'
                   (m3, s4, ad) = diagramGraph' lg (e ! a) m2 s3
-          (LGL _ var bdy) -> (m3, s5, textl nm === strutY nsep === bdyd )
+          nd@(LGL p var bdy) -> (m3, s5,
+                                 (text "" # named p #
+                                  translate (rotateBy 0 (r2 (0, 0.5)))) <>
+                                 (text "" # named bdy #
+                                  translate (rotateBy 0.5 (r2 (0, 0.5)))) <>
+                                 (textl nm # named nd === strutY nsep === bdyd))
             where (m3, s5, bdyd) = diagramGraph' lg (e ! bdy) m2 s'
                   m2 = Map.insert (e ! var) nm m
                   nm = getName $ length m2
-          (LGV _ lbd) -> (m, s', text' (m ! lbd))
-          (LGF out st zro lvl) -> if out == v then
-                                (m3, s7, text (show lvl) # scale 0.6
+          nd@(LGV p lbd) -> (m, s', (text "" # named p #
+                                     translate (rotateBy 0 (r2 (0, 0.5)))) <>
+                                    (text' (m ! lbd) # named nd))
+          nd@(LGF out st zro lvl) -> if out == v then
+                                (m3, s7, (text "" # named out #
+                                          translate (rotateBy 0 (r2 (0, 0.6)))) <>
+                                         (text "" # named st #
+                                          translate (rotateBy (1/3)(r2 (0, 0.6))))<>
+                                         (text "" # named zro #
+                                          translate (rotateBy (2/3)(r2 (0, 0.6)))) <>
+                                         (text (show lvl) # scale 0.6
                                          # translate (r2 (0.49, 0.15)) <>
                                          text "*" # scale 0.5
                                          # translate (r2 (-0.46, -0.35)) <>
                                          text "0" # scale 0.5
                                          # translate (r2 (0.46, -0.35)) <>
-                                         (rtri === strutY nsep ===
-                                          (std ||| strutX nsep ||| zrod) # centerXY))
-                              else (m4, s8, text (show lvl) # scale 0.6
-                                            # translate (r2 (0.49, -0.35)) <>
-                                            text "*" # scale 0.5
-                                            # translate (r2 (-0.46, 0.15)) <>
-                                            text "0" # scale 0.5
-                                            # translate (r2 (0.46, 0.15)) <>
-                                            (utri === strutY nsep === outd))
+                                         (rtri # named nd === strutY nsep ===
+                                         (std ||| strutX nsep ||| zrod) # centerXY)))
+                         else (m4, s8, (text "" # named out #
+                                        translate (rotateBy 0 (r2 (0, -0.6)))) <>
+                                       (text "" # named st #
+                                        translate (rotateBy (2/3)(r2 (0, -0.6))))<>
+                                       (text "" # named zro #
+                                        translate (rotateBy (1/3)(r2 (0, -0.6)))) <>
+                                       (text (show lvl) # scale 0.6
+                                        # translate (r2 (0.49, -0.35)) <>
+                                        text "*" # scale 0.5
+                                        # translate (r2 (-0.46, 0.15)) <>
+                                        text "0" # scale 0.5
+                                        # translate (r2 (0.46, 0.15)) <>
+                                        (utri # named nd ===
+                                         strutY nsep === outd)))
             where (m2, s6, std) = diagramGraph' lg (e ! st) m s'
                   (m3, s7, zrod) = diagramGraph' lg (e ! zro) m2 s6
                   rtri = regPoly 3 0.8 # lineWidth 1
                   (m4, s8, outd) = diagramGraph' lg (e ! out) m s'
                   utri = rotateBy 0.5 rtri
-          (LGR g) -> (m2, s9, rootd === strutY nsep === gd)
+          nd@(LGR g) -> (m2, s9, (text "" # named g #
+                                  translate (rotateBy 0.5 (r2 (0, 0.5)))) <>
+                                 (rootd # named nd === strutY nsep === gd))
             where (m2, s9, gd) = diagramGraph' lg (e ! g) m s'
-          (LGN g) -> (m2, s9, voidd === strutY nsep === gd)
+          nd@(LGN g) -> (m2, s9, (text "" # named g #
+                                  translate (rotateBy 0.25 (r2 (0, 0.5)))) <>
+                                 (voidd # named nd === strutY nsep === gd))
             where (m2, s9, gd) = diagramGraph' lg (e ! g) m s'
           _ -> (m, s, mempty)
 thd :: (a, b, c) -> c
 thd (_, _, v) = v
 
-withoutConnectedVoids :: LG -> Int -> Set.Set Int -> Set.Set Int
-withoutConnectedVoids lg@(LG _ n e _) i s = case (n ! i) of
-  (LGN bdy) -> withoutConnectedVoids lg (e ! bdy) (Set.delete i s)
-  (LGA prnt func arg) -> withoutConnectedVoids lg (e ! ot2) s'
-    where s' = withoutConnectedVoids lg (e ! ot1) s
+withoutConnectedVoids :: LG -> Int -> Set.Set Int -> Set.Set Int -> (Set.Set Int, Set.Set Int)
+withoutConnectedVoids lg@(LG _ n e _) i s pst = if (Set.member i pst) then (s, pst) else case (n ! i) of
+  (LGN bdy) -> withoutConnectedVoids lg (e ! bdy) (Set.delete i s) (Set.insert i pst) 
+  (LGA prnt func arg) -> withoutConnectedVoids lg (e ! ot2) s' pst'
+    where (s', pst') = withoutConnectedVoids lg (e ! ot1) s
+                       (foldl (\ps int -> Set.insert int ps) pst [prnt, func, arg])
           (ot1, ot2) = if ( i == prnt ) then (func, arg) else
                          if ( i == func ) then (prnt, arg) else (prnt, func)
-  (LGF out str zro _) -> withoutConnectedVoids lg (e ! ot2) s'
-    where s' = withoutConnectedVoids lg (e ! ot1) s
+  (LGF out str zro _) -> withoutConnectedVoids lg (e ! ot2) s' pst'
+    where (s', pst') = withoutConnectedVoids lg (e ! ot1) s
+                       (foldl (\ps int -> Set.insert int ps) pst [out, str, zro])
           (ot1, ot2) = if ( i == out ) then (str, zro) else
                          if ( i == str ) then (out, zro) else (out, str)
   (LGL prnt _ bdy) -> withoutConnectedVoids lg (e ! ot) s
+                      (foldl (\ps int -> Set.insert int ps) pst [prnt, bdy])
     where ot = if ( i == prnt ) then bdy else prnt
   (LGB prnt bdy _) -> withoutConnectedVoids lg (e ! ot) s
+                      (foldl (\ps int -> Set.insert int ps) pst [prnt, bdy])
     where ot = if ( i == prnt ) then bdy else prnt
   (LGRB prnt bdy _) -> withoutConnectedVoids lg (e ! ot) s
+                       (foldl (\ps int -> Set.insert int ps) pst [prnt, bdy])
     where ot = if ( i == prnt ) then bdy else prnt
   (LGCB prnt bdy _) -> withoutConnectedVoids lg (e ! ot) s
+                       (foldl (\ps int -> Set.insert int ps) pst [prnt, bdy])
     where ot = if ( i == prnt ) then bdy else prnt
-  _ -> s
+  _ -> (s, Set.insert i pst)
 
 removeDuplicateVoids :: LG -> Set.Set Int -> [Int]
 removeDuplicateVoids lg@(LG _ n _ _) s = if (Set.null s) then [] else
                                            case (n ! (Set.elemAt 0 s)) of
   (LGN bdy) -> bdy:(removeDuplicateVoids lg s')
-    where s' = withoutConnectedVoids lg bdy s
+    where (s', _) = withoutConnectedVoids lg bdy s Set.empty
   (LGR bdy) -> bdy:(removeDuplicateVoids lg (Set.delete (Set.elemAt 0 s) s))
   _ -> removeDuplicateVoids lg (Set.delete (Set.elemAt 0 s) s)
 
+isParent' :: LG -> Int -> Set.Set Int -> (Maybe Bool, Set.Set Int)
+isParent' lg@(LG _ n e _) i s = if (Set.member i s) then (Nothing, s) else case (n ! i) of
+  (LGA prnt _ _) -> if prnt == i then (Just True, s) else (Just False, s)
+  (LGF out str zro _) -> if not (out == i) then isParent' lg (e ! out) (Set.insert i s) else case mb of
+    Just b -> (Just b, s'')
+    Nothing -> isParent' lg (e ! ot2) s''
+    where (mb, s'') = isParent' lg (e ! ot1) s'
+          s' = Set.insert i s
+          (ot1, ot2) = (str, zro)
+  (LGB prnt bdy _) -> isParent' lg (e ! ot) (Set.insert i s)
+    where ot = if i == prnt then bdy else prnt
+  (LGRB prnt bdy _) -> isParent' lg (e ! ot) (Set.insert i s)
+    where ot = if i == prnt then bdy else prnt
+  (LGCB prnt bdy _) -> isParent' lg (e ! ot) (Set.insert i s)
+    where ot = if i == prnt then bdy else prnt
+  (LGL prnt _ _) -> if prnt == i then (Just True, s) else (Just False, s)
+  (LGN bdy) -> isParent' lg (e ! bdy) (Set.insert i s)
+  (LGV _ _) -> (Just True, s)             
+  (LGR _) -> (Just True, s)             
+
+isParent :: LG -> Int -> Bool
+isParent lg i = case fst $ isParent' lg i Set.empty of
+  Nothing -> True
+  Just b -> b
+             
 graphList :: LG -> [Int]
 graphList lg@(LG _ n _ _) = 0:(removeDuplicateVoids lg
-                               (Set.fromList $ map fst $ Map.toList n))
+                               (Set.fromList $ filter (isParent lg) $ map fst $ Map.toList n))
 
-diagramGraph :: LG -> Diagram B
-diagramGraph l = ans # scale 30 # frame 30
-  where (_, _, ans) = foldl folddg (Map.empty, Set.empty, mempty) (graphList l)
+diagramGraph'' :: LG -> Diagram B
+diagramGraph'' l = ans # scale 30 # frame 30
+  where (_, _, ans) = foldl folddg (ms, ss, ds) (tail $ graphList l)
+        (ms, ss, ds) = diagramGraph' l (head $ graphList l) Map.empty Set.empty
         folddg (m, s, dia) ind = (m', s', dia ||| strutX 1 ||| lgd)
           where (m', s', lgd) = diagramGraph' l ind m s  
-        
+
+getOneSide :: Map.Map Int Int -> [Int]
+getOneSide m = if (Map.null m) then [] else fe:(getOneSide nm)
+  where (fe, fer) = Map.elemAt 0 m
+        nm = Map.delete fe (Map.delete fer m)
+
+delambda :: LG -> [Int] -> [Int]
+delambda _ [] = []
+delambda lg@(LG _ n _ _) (i:t) = ans
+  where t' = delambda lg t
+        ans = case (n ! i) of
+          (LGL _ v _) -> if i == v then t' else (i:t')
+          (LGV _ l) -> if i == l then t' else (i:t')
+          _ -> i:t'
+
+lookupOE :: Diagram B -> Int -> Subdiagram B V2 Double Any
+lookupOE dg i = case lookupName i dg of
+  Nothing -> error ("No vertex" ++ show i)
+  Just sdg -> sdg
+
+lookupOEN :: Diagram B -> N -> Subdiagram B V2 Double Any
+lookupOEN dg n = case lookupName n dg of
+  Nothing -> error ("No vertex" ++ show n)
+  Just sdg -> sdg
+
+
+diagramGraph :: LG -> Diagram B
+diagramGraph lg@(LG _ n e _) =  foldl foldlg dgne (delambda lg $ getOneSide e)
+  where dgne = diagramGraph'' lg
+        foldlg :: Diagram B -> Int -> Diagram B
+        foldlg dia nm = place (bzc dia nm # lineWidth 1)
+                        (location (lookupOE dia nm) ) <> dia 
+        bzc :: Diagram B -> Int -> Diagram B
+        bzc dia nm = fromSegments [bezier3
+                                   ((location (lookupOE dia ((nm))))
+                                    .-. (location (lookupOEN dia (n ! (nm)))))
+                                   ((endp dia nm )^+^ ((location (lookupOE dia ((e ! nm))))
+                                    .-. (location (lookupOEN dia (n ! (e ! nm))))))
+                                   (endp dia nm)]
+        endp dia nm = ((location (lookupOE dia (e ! nm)))
+                       .-. (location (lookupOE dia nm)))
+
 graphString' :: LG -> Int -> Set.Set N -> String
 graphString' lg@(LG sz n e _) v s =
   if v >= sz then "" else if (not $ Map.member v n) || Set.member (n ! v) s then
@@ -262,11 +370,22 @@ graphString' lg@(LG sz n e _) v s =
       (LGV e1 e2) -> "Variable " ++ show e1 ++ " -> " ++ show (e ! e1) 
                         ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
+      (LGB e1 e2 l) -> "Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
+                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
+                        ++ ", level " ++ show l
+                        ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
+      (LGRB e1 e2 l) -> "R.Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
+                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
+                        ++ ", level " ++ show l
+                        ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
+      (LGCB e1 e2 l) -> "C.Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
+                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
+                        ++ ", level " ++ show l
+                        ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
       (LGR e1) -> "Root " ++ show e1 ++ " -> " ++ show (e ! e1) 
                   ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
       (LGN e1) -> "Void " ++ show e1 ++ " -> " ++ show (e ! e1) 
                   ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      _ -> ""
       
 graphString :: LG -> String
 graphString l = graphString' l 0 Set.empty
