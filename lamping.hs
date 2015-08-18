@@ -1,11 +1,12 @@
 module Lamping where
 import LCParser
 import qualified Data.Map as Map
-import Data.Map ( (!) )
+import Data.Map ((!))
 import qualified Data.Set as Set
 import qualified Data.List as List
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
+
 
 
 
@@ -127,9 +128,30 @@ addVoids l@(LG _ n e _) = Prelude.foldl addVoid l
                 lg5 = addEdge lg4 lv vv
                 lg6 = addEdge lg5 vpv nv
         addVoid lg _ = lg
-        
+
+bracketFans' :: LG -> Int -> LG
+bracketFans' lg@(LG _ n e _) i = case (n ! i) of
+  (LGF out str zro _) -> if i == out then lg14 else lg
+    where ([rbsi, rbso, rbzi, rbzo, ubi, ubo], lg2) = nextVertices lg 6
+          lg3 = addNode lg2 (LGRB rbsi rbso 0) 
+          lg4 = addNode lg3 (LGRB rbzi rbzo 0)
+          lg5 = addNode lg4 (LGB ubi ubo 0)
+          lg6 = deleteEdge lg5 str (e ! str)
+          lg7 = addEdge lg6 str rbsi
+          lg8 = addEdge lg7 rbso (e ! str)
+          lg9 = deleteEdge lg8 zro (e ! zro)
+          lg10 = addEdge lg9 zro rbzi
+          lg11 = addEdge lg10 rbzo (e ! zro)
+          lg12 = deleteEdge lg11 out (e ! out)
+          lg13 = addEdge lg12 out ubi
+          lg14 = addEdge lg13 ubo (e ! out)
+  _ -> lg
+
+bracketFans :: LG -> LG
+bracketFans l@(LG _ n _ _) = foldl (\lg i -> bracketFans' lg i) l (map fst $ Map.toList n)
+  
 makeGraph :: Program -> String -> LG
-makeGraph p s = addVoids $ snd $ makeGraph' e l' Map.empty i
+makeGraph p s = bracketFans $ addVoids $ snd $ makeGraph' e l' Map.empty i
   where (i, l) = nextVertex emptyLG
         n = LGR i
         l' = addNode l n
@@ -166,9 +188,19 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
         voidd = ((circle 0.35 :: Diagram B) <>
                  fromVertices [p2 (0.2, 0.2),p2 (-0.2, -0.2)] <> 
                  fromVertices [p2 (-0.2, 0.2),p2 (0.2, -0.2)]) # lineWidth 1.5
+        cbd = ((fromVertices [p2 (0.2, -0.3), p2 (-0.2, -0.3)] <>
+               fromVertices [p2 (0.2, -0.3),p2 (0.2, 0.35)] <> 
+               fromVertices [p2 (-0.2, -0.3),p2 (-0.2, 0.35)]) :: Diagram B)
+              # lineWidth 2
+        bd = ((arc (direction $ r2 (-0.5, 0.0)) (0.5 @@ turn) # scale 0.2
+                  # translate (r2 (0.0, -0.1))) # lineWidth 2 <>
+                 (fromVertices [p2 (0.2, -0.1),p2 (0.2, 0.35)] <> 
+                 fromVertices [p2 (-0.2, -0.1),p2 (-0.2, 0.35)]) :: Diagram B)
+             # lineWidth 2
+        rbd = bd <> fromVertices [p2 (-0.2, 0.1),p2 (0.2, 0.1)]
         (m', s'', d) = case n ! v of
           nd@(LGA p f a) -> (m3, s4,
-                             (text "" # named p #
+                             ((text "" # named p #
                               translate (rotateBy 0 (r2 (0, 0.5)))) <>
                              (text "" # named f #
                               translate (rotateBy 0.3333333 (r2 (0, 0.5)))) <>
@@ -176,22 +208,25 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                               translate (rotateBy 0.6666667 (r2 (0, 0.5)))) <>
                              (text' "@" # named nd === strutY nsep ===
                                  (fd ||| strutX nsep ||| ad) # centerXY))
+                             # fc (sRGB 1.0 0.75 0.75))
             where (m2, s3, fd) = diagramGraph' lg (e ! f) m s'
                   (m3, s4, ad) = diagramGraph' lg (e ! a) m2 s3
           nd@(LGL p var bdy) -> (m3, s5,
-                                 (text "" # named p #
+                                 ((text "" # named p #
                                   translate (rotateBy 0 (r2 (0, 0.5)))) <>
                                  (text "" # named bdy #
                                   translate (rotateBy 0.5 (r2 (0, 0.5)))) <>
                                  (textl nm # named nd === strutY nsep === bdyd))
+                                 # fc (sRGB 0.75 1.0 0.75) # lc (sRGB 0.75 1.0 0.75))
             where (m3, s5, bdyd) = diagramGraph' lg (e ! bdy) m2 s'
                   m2 = Map.insert (e ! var) nm m
                   nm = getName $ length m2
-          nd@(LGV p lbd) -> (m, s', (text "" # named p #
+          nd@(LGV p lbd) -> (m, s', ((text "" # named p #
                                      translate (rotateBy 0 (r2 (0, 0.5)))) <>
                                     (text' (m ! lbd) # named nd))
+                                    # fc (sRGB 0.75 0.75 1.0))
           nd@(LGF out st zro lvl) -> if out == v then
-                                (m3, s7, (text "" # named out #
+                                (m3, s7, ((text "" # named out #
                                           translate (rotateBy 0 (r2 (0, 0.6)))) <>
                                          (text "" # named st #
                                           translate (rotateBy (1/3)(r2 (0, 0.6))))<>
@@ -203,9 +238,10 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                                          # translate (r2 (-0.46, -0.35)) <>
                                          text "0" # scale 0.5
                                          # translate (r2 (0.46, -0.35)) <>
-                                         (rtri # named nd === strutY nsep ===
+                                         (rtri # named nd # fcA transparent === strutY nsep ===
                                          (std ||| strutX nsep ||| zrod) # centerXY)))
-                         else (m4, s8, (text "" # named out #
+                                         # fc (sRGB 1.0 0.5 1.0) # lc (sRGB 1.0 0.5 1.0))
+                         else (m4, s8, ((text "" # named out #
                                         translate (rotateBy 0 (r2 (0, -0.6)))) <>
                                        (text "" # named st #
                                         translate (rotateBy (2/3)(r2 (0, -0.6))))<>
@@ -217,22 +253,60 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                                         # translate (r2 (-0.46, 0.15)) <>
                                         text "0" # scale 0.5
                                         # translate (r2 (0.46, 0.15)) <>
-                                        (utri # named nd ===
+                                        (utri # named nd # fcA transparent ===
                                          strutY nsep === outd)))
+                                       # fc (sRGB 1.0 0.5 1.0) # lc (sRGB 1.0 0.5 1.0))
             where (m2, s6, std) = diagramGraph' lg (e ! st) m s'
                   (m3, s7, zrod) = diagramGraph' lg (e ! zro) m2 s6
                   rtri = regPoly 3 0.8 # lineWidth 1
                   (m4, s8, outd) = diagramGraph' lg (e ! out) m s'
                   utri = rotateBy 0.5 rtri
-          nd@(LGR g) -> (m2, s9, (text "" # named g #
+          nd@(LGR g) -> (m2, s9, ((text "" # named g #
                                   translate (rotateBy 0.5 (r2 (0, 0.5)))) <>
                                  (rootd # named nd === strutY nsep === gd))
+                                 # lc (sRGB 0.75 0.75 0.75))
             where (m2, s9, gd) = diagramGraph' lg (e ! g) m s'
-          nd@(LGN g) -> (m2, s9, (text "" # named g #
-                                  translate (rotateBy 0.25 (r2 (0, 0.5)))) <>
+          nd@(LGN g) -> (m2, s9, ((text "" # named g #
+                                  translate (rotateBy (-0.25) (r2 (0, 0.5)))) <>
                                  (voidd # named nd === strutY nsep === gd))
+                                 # lc (sRGB 1.0 1.0 0.5))
             where (m2, s9, gd) = diagramGraph' lg (e ! g) m s'
-          _ -> (m, s, mempty)
+          nd@(LGB p b lvl) -> (m2, s9, ((text (show lvl) # scale 0.6
+                                        # translate (r2 (0.49, -0.35))) <>
+                                       (text "" # named inp #
+                                        translate (rotateBy 0 (r2 (0, 0.5)))) <>
+                                       (text "" # named outp #
+                                        translate (rotateBy 0.5 (r2 (0, 0.5)))) <>
+                                       (bdf # named nd === strutY nsep === gd))
+                                       # fc (sRGB 0.5 1 1) # lc (sRGB 0.5 1 1))
+            where (m2, s9, gd) = diagramGraph' lg (e ! outp) m s'
+                  (inp, outp) = if v == p then (p, b) else (b, p)
+                  bdf = if v == p then bd else rotateBy 0.5 bd
+          nd@(LGCB p b lvl) -> (m2, s9, ((text (show lvl) # scale 0.6
+                                         # translate (r2 (0.49, -0.35))) <>
+                                         (text "" # named inp #
+                                          translate (rotateBy 0 (r2 (0, 0.5)))) <>
+                                         (text "" # named outp #
+                                          translate (rotateBy 0.5 (r2 (0, 0.5)))) <>
+                                         (cbdf # named nd === strutY nsep === gd))
+                                        # fc (sRGB 0.5 1 1) # lc (sRGB 0.5 1 1))
+            where (m2, s9, gd) = diagramGraph' lg (e ! outp) m s'
+                  (inp, outp) = if v == p then (p, b) else (b, p)
+                  cbdf = if v == p then cbd else rotateBy 0.5 cbd
+          nd@(LGRB p b lvl) -> (m2, s9, ((text (show lvl) # scale 0.6
+                                         # translate (r2 (0.49, -0.35))) <>
+                                         (text "" # named inp #
+                                          translate (rotateBy 0 (r2 (0, 0.5)))) <>
+                                         (text "" # named outp #
+                                          translate (rotateBy 0.5 (r2 (0, 0.5)))) <>
+                                         (rbdf # named nd === strutY nsep === gd))
+                                        # fc (sRGB 0.5 1 1) # lc (sRGB 0.5 1 1))
+            where (m2, s9, gd) = diagramGraph' lg (e ! outp) m s'
+                  (inp, outp) = if v == p then (p, b) else (b, p)
+                  rbdf = if v == p then rbd else rotateBy 0.5 rbd
+      
+
+          
 thd :: (a, b, c) -> c
 thd (_, _, v) = v
 
@@ -334,9 +408,10 @@ lookupOEN dg n = case lookupName n dg of
 
 diagramGraph :: LG -> Diagram B
 diagramGraph lg@(LG _ n e _) =  foldl foldlg dgne (delambda lg $ getOneSide e)
+                                # lineCap LineCapRound # bg black
   where dgne = diagramGraph'' lg
         foldlg :: Diagram B -> Int -> Diagram B
-        foldlg dia nm = place (bzc dia nm # lineWidth 1)
+        foldlg dia nm = place (bzc dia nm # lineWidth 1 # opacity 0.7 # lc (sRGB 1.0 1.0 1.0))
                         (location (lookupOE dia nm) ) <> dia 
         bzc :: Diagram B -> Int -> Diagram B
         bzc dia nm = fromSegments [bezier3
