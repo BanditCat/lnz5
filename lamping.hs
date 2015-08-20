@@ -197,7 +197,7 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                  (fromVertices [p2 (0.2, -0.1),p2 (0.2, 0.35)] <> 
                  fromVertices [p2 (-0.2, -0.1),p2 (-0.2, 0.35)]) :: Diagram B)
              # lwL (2/30)
-        rbd = bd <> (fromVertices [p2 (-0.2, 0.1),p2 (0.2, 0.1)] # lwL (2/30))
+        rbd = bd <> (fromVertices [p2 (-0.2, 0.1),p2 (0.2, 0.1)] # lwL (2/30)) # lineCap LineCapButt
         (m', s'', d) = case n ! v of
           nd@(LGA p f a) -> (m3, s4,
                              ((text "" # named p #
