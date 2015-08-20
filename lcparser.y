@@ -188,6 +188,10 @@ addposWord l = foldl addposChar l
 lcparseString :: String -> Program
 lcparseString s = unpackP lcparse s (Location "<string>" 1 1)
 
+lcparseFile :: String -> Program
+lcparseFile fn = do f <- readFile fn
+                   return unpackP lcparse f (Location f 1 1)
+
 programToString :: Program -> String
 programToString (Pr []) = ""
 programToString (Pr (h:t)) = lineToString h ++ programToString (Pr t)

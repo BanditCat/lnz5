@@ -148,7 +148,7 @@ bracketFans' lg@(LG _ n e _) i = case (n ! i) of
   _ -> lg
 
 bracketFans :: LG -> LG
-bracketFans l@(LG _ n _ _) = foldl (\lg i -> bracketFans' lg i) l (map fst $ Map.toList n)
+bracketFans l@(LG _ n _ _) = foldl bracketFans' l (map fst $ Map.toList n)
   
 makeGraph :: Program -> String -> LG
 makeGraph p s = bracketFans $ addVoids $ snd $ makeGraph' e l' Map.empty i
@@ -179,25 +179,25 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
         lambdad = (fromVertices [p2 (-0.2, 0.33),p2 (0.25, -0.3)] <> 
                   fromVertices [p2 (0,  0.05),p2 (-0.25, -0.3)] <> 
                   arc (direction $ r2 (0.7, 0.5)) (0.35 @@ turn) # scale 0.1
-                  # translate (r2 (-0.28, 0.27))) # lineWidth 2
+                  # translate (r2 (-0.28, 0.27))) # lwL (2/30)
         text' st = bbox (fromIntegral $ length st) <> text st
         textl st = (lambdad ||| text' st) # centerXY
         rootd = ((circle 0.35 :: Diagram B) <>
                  fromVertices [p2 (0, 0.25),p2 (0, -0.35)] <> 
-                 fromVertices [p2 (-0.244, 0.25),p2 (0.244, 0.25)]) # lineWidth 1.5
+                 fromVertices [p2 (-0.244, 0.25),p2 (0.244, 0.25)]) # lwL (1.5/30)
         voidd = ((circle 0.35 :: Diagram B) <>
                  fromVertices [p2 (0.2, 0.2),p2 (-0.2, -0.2)] <> 
-                 fromVertices [p2 (-0.2, 0.2),p2 (0.2, -0.2)]) # lineWidth 1.5
+                 fromVertices [p2 (-0.2, 0.2),p2 (0.2, -0.2)]) # lwL (1.5/30)
         cbd = ((fromVertices [p2 (0.2, -0.3), p2 (-0.2, -0.3)] <>
                fromVertices [p2 (0.2, -0.3),p2 (0.2, 0.35)] <> 
                fromVertices [p2 (-0.2, -0.3),p2 (-0.2, 0.35)]) :: Diagram B)
-              # lineWidth 2
+              # lwL (2/30)
         bd = ((arc (direction $ r2 (-0.5, 0.0)) (0.5 @@ turn) # scale 0.2
-                  # translate (r2 (0.0, -0.1))) # lineWidth 2 <>
+                  # translate (r2 (0.0, -0.1))) # lwL (2/30) <>
                  (fromVertices [p2 (0.2, -0.1),p2 (0.2, 0.35)] <> 
                  fromVertices [p2 (-0.2, -0.1),p2 (-0.2, 0.35)]) :: Diagram B)
-             # lineWidth 2
-        rbd = bd <> fromVertices [p2 (-0.2, 0.1),p2 (0.2, 0.1)]
+             # lwL (2/30)
+        rbd = bd <> (fromVertices [p2 (-0.2, 0.1),p2 (0.2, 0.1)] # lwL (2/30))
         (m', s'', d) = case n ! v of
           nd@(LGA p f a) -> (m3, s4,
                              ((text "" # named p #
@@ -238,9 +238,11 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                                          # translate (r2 (-0.46, -0.35)) <>
                                          text "0" # scale 0.5
                                          # translate (r2 (0.46, -0.35)) <>
-                                         (rtri # named nd # fcA transparent === strutY nsep ===
+                                         (rtri # named nd # fcA transparent ===
+                                          strutY nsep ===
                                          (std ||| strutX nsep ||| zrod) # centerXY)))
-                                         # fc (sRGB 1.0 0.5 1.0) # lc (sRGB 1.0 0.5 1.0))
+                                         # fc (sRGB 1.0 0.5 1.0) #
+                                         lc (sRGB 1.0 0.5 1.0))
                          else (m4, s8, ((text "" # named out #
                                         translate (rotateBy 0 (r2 (0, -0.6)))) <>
                                        (text "" # named st #
@@ -255,10 +257,11 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                                         # translate (r2 (0.46, 0.15)) <>
                                         (utri # named nd # fcA transparent ===
                                          strutY nsep === outd)))
-                                       # fc (sRGB 1.0 0.5 1.0) # lc (sRGB 1.0 0.5 1.0))
+                                       # fc (sRGB 1.0 0.5 1.0)
+                                       # lc (sRGB 1.0 0.5 1.0))
             where (m2, s6, std) = diagramGraph' lg (e ! st) m s'
                   (m3, s7, zrod) = diagramGraph' lg (e ! zro) m2 s6
-                  rtri = regPoly 3 0.8 # lineWidth 1
+                  rtri = regPoly 3 0.8 # lwL (1/30)
                   (m4, s8, outd) = diagramGraph' lg (e ! out) m s'
                   utri = rotateBy 0.5 rtri
           nd@(LGR g) -> (m2, s9, ((text "" # named g #
@@ -310,8 +313,10 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
 thd :: (a, b, c) -> c
 thd (_, _, v) = v
 
-withoutConnectedVoids :: LG -> Int -> Set.Set Int -> Set.Set Int -> (Set.Set Int, Set.Set Int)
-withoutConnectedVoids lg@(LG _ n e _) i s pst = if (Set.member i pst) then (s, pst) else case (n ! i) of
+withoutConnectedVoids :: LG -> Int -> Set.Set Int -> Set.Set Int ->
+                         (Set.Set Int, Set.Set Int)
+withoutConnectedVoids lg@(LG _ n e _) i s pst = if (Set.member i pst) then (s, pst)
+                                                else case (n ! i) of
   (LGN bdy) -> withoutConnectedVoids lg (e ! bdy) (Set.delete i s) (Set.insert i pst) 
   (LGA prnt func arg) -> withoutConnectedVoids lg (e ! ot2) s' pst'
     where (s', pst') = withoutConnectedVoids lg (e ! ot1) s
@@ -346,9 +351,11 @@ removeDuplicateVoids lg@(LG _ n _ _) s = if (Set.null s) then [] else
   _ -> removeDuplicateVoids lg (Set.delete (Set.elemAt 0 s) s)
 
 isParent' :: LG -> Int -> Set.Set Int -> (Maybe Bool, Set.Set Int)
-isParent' lg@(LG _ n e _) i s = if (Set.member i s) then (Nothing, s) else case (n ! i) of
+isParent' lg@(LG _ n e _) i s = if (Set.member i s) then (Nothing, s) else
+                                  case (n ! i) of
   (LGA prnt _ _) -> if prnt == i then (Just True, s) else (Just False, s)
-  (LGF out str zro _) -> if not (out == i) then isParent' lg (e ! out) (Set.insert i s) else case mb of
+  (LGF out str zro _) -> if not (out == i) then
+                           isParent' lg (e ! out) (Set.insert i s) else case mb of
     Just b -> (Just b, s'')
     Nothing -> isParent' lg (e ! ot2) s''
     where (mb, s'') = isParent' lg (e ! ot1) s'
@@ -372,14 +379,16 @@ isParent lg i = case fst $ isParent' lg i Set.empty of
              
 graphList :: LG -> [Int]
 graphList lg@(LG _ n _ _) = 0:(removeDuplicateVoids lg
-                               (Set.fromList $ filter (isParent lg) $ map fst $ Map.toList n))
+                               (Set.fromList $ filter (isParent lg) $
+                                map fst $ Map.toList n))
 
 diagramGraph'' :: LG -> Diagram B
-diagramGraph'' l = ans # scale 30 # frame 30
+diagramGraph'' l = ans
   where (_, _, ans) = foldl folddg (ms, ss, ds) (tail $ graphList l)
         (ms, ss, ds) = diagramGraph' l (head $ graphList l) Map.empty Set.empty
         folddg (m, s, dia) ind = (m', s', dia ||| strutX 1 ||| lgd)
-          where (m', s', lgd) = diagramGraph' l ind m s  
+          where (m', s', lgd) = diagramGraph' l ind m s
+
 
 getOneSide :: Map.Map Int Int -> [Int]
 getOneSide m = if (Map.null m) then [] else fe:(getOneSide nm)
@@ -406,22 +415,29 @@ lookupOEN dg n = case lookupName n dg of
   Just sdg -> sdg
 
 
-diagramGraph :: LG -> Diagram B
-diagramGraph lg@(LG _ n e _) =  foldl foldlg dgne (delambda lg $ getOneSide e)
-                                # lineCap LineCapRound # bg black
+diagramGraph :: LG -> Set.Set Int -> Diagram B
+diagramGraph lg@(LG _ n e _) es =  foldl foldlg dgne (delambda lg $ getOneSide e)
+                                   # lineCap LineCapRound # scale 15 # frame 15
+                                   # bg black
   where dgne = diagramGraph'' lg
         foldlg :: Diagram B -> Int -> Diagram B
-        foldlg dia nm = place (bzc dia nm # lineWidth 1 # opacity 0.7 # lc (sRGB 1.0 1.0 1.0))
-                        (location (lookupOE dia nm) ) <> dia 
+        foldlg dia nm = place (bzc dia nm # opacity 0.7 #
+                                  lwL (if Set.member nm es then (3/30) else (1/30))# 
+                                  lc (sRGB 1.0 1.0 1.0) #
+                                  (withEnvelope $ (text "" :: Diagram B)))
+                                   (location (lookupOE dia nm) ) <> dia 
         bzc :: Diagram B -> Int -> Diagram B
         bzc dia nm = fromSegments [bezier3
                                    ((location (lookupOE dia ((nm))))
                                     .-. (location (lookupOEN dia (n ! (nm)))))
-                                   ((endp dia nm )^+^ ((location (lookupOE dia ((e ! nm))))
+                                   ((endp dia nm ) ^+^
+                                    ((location (lookupOE dia ((e ! nm))))
                                     .-. (location (lookupOEN dia (n ! (e ! nm))))))
                                    (endp dia nm)]
         endp dia nm = ((location (lookupOE dia (e ! nm)))
                        .-. (location (lookupOE dia nm)))
+
+
 
 graphString' :: LG -> Int -> Set.Set N -> String
 graphString' lg@(LG sz n e _) v s =

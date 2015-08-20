@@ -12,7 +12,7 @@ all: debug
 CC=gcc
 GHC=ghc
 HAPPY=happy
-GHCFLAGS=-Wall -XConstrainedClassMethods -XDeriveDataTypeable -XDeriveFoldable -XDeriveFunctor -XDeriveGeneric -XDeriveTraversable -XEmptyDataDecls -XExistentialQuantification -XExplicitNamespaces -XFlexibleContexts -XFlexibleInstances -XForeignFunctionInterface -XFunctionalDependencies -XGeneralizedNewtypeDeriving -XImplicitParams -XKindSignatures -XLiberalTypeSynonyms -XMagicHash -XMultiParamTypeClasses -XParallelListComp -XPatternGuards -XPostfixOperators -XRankNTypes -XRecursiveDo -XScopedTypeVariables -XStandaloneDeriving -XTypeOperators -XTypeSynonymInstances -XUnboxedTuples -XUnicodeSyntax -XUnliftedFFITypes
+GHCFLAGS=-Wall -XConstrainedClassMethods -XDeriveDataTypeable -XDeriveFoldable -XDeriveFunctor -XDeriveGeneric -XDeriveTraversable -XEmptyDataDecls -XExistentialQuantification -XExplicitNamespaces -XFlexibleContexts -XFlexibleInstances -XForeignFunctionInterface -XFunctionalDependencies -XGeneralizedNewtypeDeriving -XImplicitParams -XKindSignatures -XLiberalTypeSynonyms -XMagicHash -XMultiParamTypeClasses -XParallelListComp -XPatternGuards -XPostfixOperators -XRankNTypes -XRecursiveDo -XScopedTypeVariables -XStandaloneDeriving -XTypeOperators -XTypeSynonymInstances -XUnboxedTuples -XUnicodeSyntax -XUnliftedFFITypes -threaded
 HAPPYFLAGS=-a -g -c -i
 
 

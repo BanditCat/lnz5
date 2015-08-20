@@ -1,0 +1,64 @@
+nil = \x.x;
+false = \x.nil;
+
+true = \x y.x;
+
+one = \f x.f x;
+two = \f x.f [f x];
+three = \f x.f [f [f x]];
+four = \f x.f [f [f [f x]]];
+five = \f x.f [f [f [f [f x]]]];
+
+churchPower = \x y.[\z.x y z];
+
+
+if = \bool then else.bool then else;
+
+cons = \h t.[\x.x h t];
+
+head = \c.c true;
+
+tail = \c.c false;
+
+iscons = \x.x [\z.false] true;
+
+not = \x.x false true;
+
+isnil = \x.not [iscons x];
+
+Y = \x.[\y.y y] [\y.x [y y]];
+Yp = \x.[\y.x [y y]] [\y.x [y y]];
+
+theta =  [\x. \y. [y [x x y]]] [\x. \y. [y [x x y]]];
+thetacbv =  [\x y.y [\z. x x y z]] [\x y.y [\z. x x y z]];
+
+
+
+incnr = \incnr x.if [isnil x] 
+       	            [cons true nil]
+	            [if [head x]
+	                [cons false [incnr [tail x]]]
+		        [cons true [tail x]]];
+
+incr = thetacbv incnr;
+
+
+inc7 = [\x.[\y. [[\f.[[\h.[h [\p.[h[\q.q]]]]]][\l.[[[f [\n. [l n]]] x] y]]]][\g. [\u. \v.[[g u] [g v]]]]]];
+
+inc1 = 
+         [\h.h [\p.h p]]
+      	 [\l.l [\n.l n]]
+      ;
+
+inc5 = [\f.[\x.[[\g.[g [g x]]] [\y.[f y]]]]];
+inc6 = [churchPower five two] incr nil;
+
+inc2 = [[\g.[g [g [\x.x]]]]
+       [\h.[[\f.[f [f [\z.z]]]]
+            [h [\y.y]]]]];
+
+inc4 = \x.[x [\y.[\z.x] [\z.x]]];
+inc3 = \x.[x [\y.x x]];
+
+inc0 = [\x y z.[x x] [y y]] nil nil nil;
+inc = \x.[x [\y z.x [y z]]];
