@@ -7,5 +7,11 @@ import Data.Set as Set
 
 main :: IO ()
 main = do fc <- lcparseFile "base.lnz"
-       	  putStrLn $ graphString (makeGraph fc "inc7")
-          mainWith $ diagramGraph (makeGraph fc "inc7") (Set.fromList [])
+          let lg = makeGraph fc "inc2" in
+            do putStrLn $ graphString lg
+               putStrLn $ expToString $ buildProgram lg
+               putStrLn $ getLineString fc "inc2"
+               mainWith (diagramRules lg
+                         [(rule1a, 0),
+                          (rule1a, 0)
+                         ] 500)

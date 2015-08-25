@@ -80,6 +80,14 @@ addNode :: LG -> N -> LG
 addNode (LG sz n e f) nn = (LG sz n' e f)
   where n' = foldN (\i m -> Map.insert i nn m) nn n 
 
+deleteNode :: LG -> N -> LG
+deleteNode lg nd = (LG (heapSize lg') (nodes lg') e' (frees lg'))
+  where lg' = foldN (\i lgi -> deleteVertex lgi i) nd lg
+        e' = foldN (\i ed -> if Map.member i ed then
+                               Map.delete i (Map.delete (ed ! i) ed)
+                             else ed) nd e
+        e = edges lg'
+
 makeGraph' :: Exp -> LG -> (Map.Map Int Int) -> Int -> (Map.Map Int Int, LG)
 makeGraph' (A e1 e2) l m p = (m3, l6)
   where ([p', f, a], l2) = nextVertices l 3
@@ -168,19 +176,20 @@ getName 0 = ""
 getName n = nameLetters !! ((n - 1) `mod` len) : getName ((n - 1) `div` len)
   where len = length nameLetters
 
+text' :: String -> Diagram B
+text' st = bbox (fromIntegral $ length st) <> text st
+  where bbox nd = phantom $ (square 0.8 # scaleX (0.57 * nd) :: Diagram B)
+
 diagramGraph' :: LG -> Int -> Map.Map Int String -> Set.Set N ->
                  (Map.Map Int String, Set.Set N, Diagram B)
 diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty)
                                       else (m', s'', d)
   where s' = Set.insert (n ! v) s
-        text' :: String -> Diagram B
         nsep = 0.8
-        bbox nd = phantom $ (square 0.8 # scaleX (0.57 * nd) :: Diagram B)
         lambdad = (fromVertices [p2 (-0.2, 0.33),p2 (0.25, -0.3)] <> 
                   fromVertices [p2 (0,  0.05),p2 (-0.25, -0.3)] <> 
                   arc (direction $ r2 (0.7, 0.5)) (0.35 @@ turn) # scale 0.1
                   # translate (r2 (-0.28, 0.27))) # lwL (2/30)
-        text' st = bbox (fromIntegral $ length st) <> text st
         textl st = (lambdad ||| text' st) # centerXY
         rootd = ((circle 0.35 :: Diagram B) <>
                  fromVertices [p2 (0, 0.25),p2 (0, -0.35)] <> 
@@ -197,7 +206,8 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                  (fromVertices [p2 (0.2, -0.1),p2 (0.2, 0.35)] <> 
                  fromVertices [p2 (-0.2, -0.1),p2 (-0.2, 0.35)]) :: Diagram B)
              # lwL (2/30)
-        rbd = bd <> (fromVertices [p2 (-0.2, 0.1),p2 (0.2, 0.1)] # lwL (2/30)) # lineCap LineCapButt
+        rbd = bd <> (fromVertices [p2 (-0.2, 0.1),p2 (0.2, 0.1)] # lwL (2/30))
+              # lineCap LineCapButt
         (m', s'', d) = case n ! v of
           nd@(LGA p f a) -> (m3, s4,
                              ((text "" # named p #
@@ -415,15 +425,16 @@ lookupOEN dg n = case lookupName n dg of
   Just sdg -> sdg
 
 
-diagramGraph :: LG -> Set.Set Int -> Diagram B
-diagramGraph lg@(LG _ n e _) es =  foldl foldlg dgne (delambda lg $ getOneSide e)
-                                   # lineCap LineCapRound # scale 15 # frame 15
+diagramGraph :: LG -> Set.Set Int -> Double -> Diagram B
+diagramGraph lg@(LG _ n e _) es scl =  foldl foldlg dgne (delambda lg $ getOneSide e)
+                                   # lineCap LineCapRound # scale scl # frame scl
                                    # bg black
   where dgne = diagramGraph'' lg
         foldlg :: Diagram B -> Int -> Diagram B
         foldlg dia nm = place (bzc dia nm # opacity 0.7 #
                                   lwL (if Set.member nm es then (3/30) else (1/30))# 
-                                  lc (sRGB 1.0 1.0 1.0) #
+                                  lc (if Set.member nm es then (sRGB 0.0 1.0 0.0)
+                                      else (sRGB 1.0 1.0 1.0)) #
                                   (withEnvelope $ (text "" :: Diagram B)))
                                    (location (lookupOE dia nm) ) <> dia 
         bzc :: Diagram B -> Int -> Diagram B
@@ -480,3 +491,166 @@ graphString' lg@(LG sz n e _) v s =
       
 graphString :: LG -> String
 graphString l = graphString' l 0 Set.empty
+
+data PC = PCEmpty
+        | PC [Bool] PC PC
+
+emptyPC :: PC
+emptyPC = PC [] PCEmpty PCEmpty
+
+bracket :: PC -> Int -> PC
+bracket pc 0 = PC [] PCEmpty pc
+bracket (PC d c pc) n = PC d c (bracket pc (n - 1))
+bracket PCEmpty _ = error "Level too high in a bracket!"
+
+unbracket :: PC -> Int -> PC
+unbracket (PC _ _ pc) 0 = pc
+unbracket (PC d c pc) n = PC d c (unbracket pc (n - 1))
+unbracket PCEmpty _ = error "Level too high in a unbracket!"
+
+cbracket :: PC -> Int -> PC
+cbracket (PC d (PC cd cc cpc) pc) 0 = PC cd cpc (PC d cc pc)
+cbracket (PC _ PCEmpty _) _ = error "No closure!"
+cbracket (PC d c pc) n = PC d c (cbracket pc (n - 1))
+cbracket PCEmpty _ = error "Level to high in a cbracket!"
+
+cunbracket :: PC -> Int -> PC
+cunbracket (PC d c (PC nd nc npc)) 0 = PC nd (PC d nc c) npc 
+cunbracket (PC _ _ PCEmpty) _ = error "No next closure!"
+cunbracket (PC d c pc) n = PC d c (cunbracket pc (n - 1))
+cunbracket PCEmpty _ = error "Level to high in a cunbracket!"
+
+fanin :: PC -> Int -> Bool -> PC
+fanin (PC d c pc) 0 b = PC (b:d) c pc
+fanin (PC d c pc) n b = PC d c (fanin pc (n - 1) b) 
+fanin PCEmpty _ _ = error "Level too high in a fanin!"
+
+fanout :: PC -> Int -> (Bool, PC)
+fanout (PC (h:t) c pc) 0 = (h, PC t c pc)
+fanout (PC [] _ _) _ = error "Out of directions in a fanout!"
+fanout (PC d c pc) n = (a, PC d c cont)
+  where (a, cont) = fanout pc (n - 1)
+fanout PCEmpty _ = error "Level too high in a fanout!"
+
+traverseGraph :: LG -> PC -> Int -> (PC -> Int -> a -> (Bool, a)) -> a -> (Bool, a)
+traverseGraph lg@(LG _ n e _) pc i f acc = case (n ! i) of
+  (LGA _ func arg) -> if ans then
+                        (if ansf then (ansa, a2) else (ansf, a1))
+                      else (ans, a)
+    where (ans, a) = f pc i acc
+          (ansf, a1) = traverseGraph lg pc (e ! func) f a
+          (ansa, a2) = traverseGraph lg pc (e ! arg) f a1
+  (LGL _ _ bdy) -> if ans then traverseGraph lg pc (e ! bdy) f a else (ans, a)
+    where (ans, a) = f pc i acc
+  (LGV _ _) -> f pc i acc
+  (LGF out str zro lvl) -> if ans then
+                             (if i == out then traverseGraph lg pc1 (e ! ot) f a
+                              else traverseGraph lg pc2 (e ! out) f a)
+                           else (ans, a)
+    where (ans, a) = f pc i acc
+          (isstr, pc1) = fanout pc lvl
+          ot = if isstr then str else zro
+          pc2 = fanin pc lvl (i == str)
+  (LGR bdy) -> if ans then traverseGraph lg pc (e ! bdy) f a else (ans, a)
+    where (ans, a) = f pc i acc
+  (LGB cin cout lvl) -> if ans then
+                          (if i == cin then traverseGraph lg pc1 (e ! cout) f a
+                           else traverseGraph lg pc2 (e ! cin) f a)
+                        else (ans, a)
+    where (ans, a) = f pc i acc
+          pc1 = unbracket pc lvl
+          pc2 = bracket pc lvl
+  (LGRB cin cout lvl) -> if ans then
+                           (if i == cin then traverseGraph lg pc1 (e ! cout) f a
+                            else traverseGraph lg pc2 (e ! cin) f a)
+                         else (ans, a)
+    where (ans, a) = f pc i acc
+          pc1 = unbracket pc lvl
+          pc2 = bracket pc lvl
+  (LGCB cin cout lvl) -> if ans then
+                           (if i == cin then traverseGraph lg pc1 (e ! cout) f a
+                            else traverseGraph lg pc2 (e ! cin) f a)
+                         else (ans, a)
+    where (ans, a) = f pc i acc
+          pc1 = cunbracket pc lvl
+          pc2 = cbracket pc lvl
+  (LGN _) -> error "Null in traversal!"
+          
+data BP = TwoArgs (Map.Map Int Int) (Exp -> Exp -> Exp)
+        | OneArg (Map.Map Int Int) (Exp -> Exp)
+        | NoArgs Exp
+
+
+getBPmap :: [BP] -> (Map.Map Int Int)
+getBPmap ((TwoArgs m _):_) = m
+getBPmap ((OneArg m _):_) = m
+getBPmap ((NoArgs _):_) = error "getBPmap on NoArgs!"
+getBPmap [] = Map.empty
+
+applify :: [BP] -> [BP]
+applify ((NoArgs e):(OneArg _ f):t) = applify ((NoArgs (f e)):t)
+applify ((NoArgs e):(TwoArgs m f):t) = ((OneArg m (f e)):t)
+applify l = l
+
+buildProgram' :: LG -> PC -> Int -> [BP] -> (Bool, [BP])
+buildProgram' (LG _ nds e _) _ i l = case (nds ! i) of
+  (LGA _ _ _) -> (True, (TwoArgs (getBPmap l) (\f a -> A f a)):l) 
+  (LGV _ lbd) -> (True, applify ((NoArgs fv):l))
+    where fv = F ((getBPmap l) ! lbd)
+  (LGL _ var _) -> case l of
+    ((TwoArgs _ _):_) -> (True, (OneArg m' (\lbd -> L (getName (length m')) lbd)):l)
+    ((OneArg _ f):t) -> (True, (OneArg m' (\lbd -> f (L (getName (length m')) lbd)):t))
+    ((NoArgs _):_) -> error "snp"
+    [] -> (True, [OneArg m' (\lbd -> L (getName 1) lbd)])
+    where m' = Map.insert (e ! var) 0 (Map.map (\n -> (n + 1)) (getBPmap l))
+  _ -> (True, l)        
+
+buildProgram :: LG -> Exp
+buildProgram lg = case snd $ traverseGraph lg emptyPC 0 (buildProgram' lg) [] of
+  [NoArgs e] -> e
+  _ -> error "Malformed buildProgram!"
+
+
+data LRule = LR {
+  lrname :: String,
+  lrfunc :: LG -> N -> ([Int], LG)
+}
+rule1a' :: LG -> N -> ([Int], LG)
+rule1a' lg@(LG _ n e _) nd@(LGA va lbd vd) = case n ! (e ! lbd) of
+  l@(LGL p var vb) -> ([va, (e ! va), vd, (e ! vd), lbd, p, vb,
+                        (e ! vb), vc, (e ! vc)], lg6)
+    where (vc, avar) = case n ! (e ! var) of
+            lgv@(LGV varc _) -> (varc, lgv)
+            _ -> error "Nonvariable var link!"
+          lg2 = deleteNode lg nd
+          lg3 = deleteNode lg2 l
+          lg4 = deleteNode lg3 avar
+          lg5 = addEdge lg4 (e ! vc) (e ! vd)
+          lg6 = addEdge lg5 (e ! vb) (e ! va)
+  _ -> ([], lg)
+rule1a' lg _ = ([], lg)
+rule1a :: LRule
+rule1a = LR "I.a" rule1a'
+
+applyRule :: LG -> LRule -> Int -> ([Int], LG)
+applyRule lg r n = case traverseGraph lg emptyPC 0 (aprule lg) (n, [], lg) of
+  (_, (_, l, lg')) -> (l, lg')
+  where aprule :: LG -> PC -> Int -> (Int, [Int], LG) -> (Bool, (Int, [Int], LG))
+        aprule (LG _ nds _ _) _ i (n', _, _) = case (lrfunc r) lg (nds ! i) of
+          ([], _) -> (True, (n', [], lg))
+          (l, lg') -> if n' == 0 then (False, (0, l, lg')) else
+                        (True, (n' - 1, [], lg))
+
+diagramRules :: LG -> [(LRule, Int)] -> Double -> Diagram B
+diagramRules lg [] scl =
+  text' "Done" # scale (scl / 30) # frame (scl / 60) # fc white ===
+  diagramGraph lg Set.empty 1 # sizedAs (square scl :: Diagram B)
+diagramRules lg ((lr, lrl):lrs) scl =
+  ((text' ("Applying rule " ++ (lrname lr)) # scale (scl / 30) # frame (scl / 60)
+    # fc white ===
+  (diagramGraph lg (Set.fromList rls) 1) # sizedAs (square scl :: Diagram B)) |||
+  diagramRules lg' lrs scl) # bg black
+    where (rls, lg') = applyRule lg lr lrl
+  
+  
+  

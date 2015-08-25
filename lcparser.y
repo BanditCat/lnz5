@@ -196,6 +196,12 @@ programToString :: Program -> String
 programToString (Pr []) = ""
 programToString (Pr (h:t)) = lineToString h ++ programToString (Pr t)
 
+lineToString :: Program -> String -> String
+lineToString p s = case lookup s (getEnv p) of
+  Just (Eq _ e) -> expToString e
+  Nothing -> error "Failed lookup in lineToString"
+
+
 lineToString :: Line -> String
 lineToString (Eq s exp) = s ++ " = " ++ expToString exp ++ ";\n"
 
