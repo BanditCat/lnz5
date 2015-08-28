@@ -16,7 +16,7 @@ data N
   | LGL Int Int Int
   | LGV Int Int
   | LGF Int Int Int Int -- point, star, zero, level
-  | LGB Int Int Int
+  | LGB Int Int
   | LGRB Int Int Int
   | LGCB Int Int Int
   | LGR Int
@@ -44,7 +44,7 @@ foldN f (LGA e1 e2 e3) a = f e3 (f e2 (f e1 a))
 foldN f (LGL e1 e2 e3) a = f e3 (f e2 (f e1 a))
 foldN f (LGF e1 e2 e3 _) a = f e3 (f e2 (f e1 a))
 foldN f (LGV e1 e2) a = f e2 (f e1 a)
-foldN f (LGB e1 e2 _) a = f e2 (f e1 a)
+foldN f (LGB e1 e2) a = f e2 (f e1 a)
 foldN f (LGRB e1 e2 _) a = f e2 (f e1 a)
 foldN f (LGCB e1 e2 _) a = f e2 (f e1 a)
 foldN f (LGR e1) a = f e1 a
@@ -143,7 +143,7 @@ bracketFans' lg@(LG _ n e _) i = case (n ! i) of
     where ([rbsi, rbso, rbzi, rbzo, ubi, ubo], lg2) = nextVertices lg 6
           lg3 = addNode lg2 (LGRB rbsi rbso 0) 
           lg4 = addNode lg3 (LGRB rbzi rbzo 0)
-          lg5 = addNode lg4 (LGB ubi ubo 0)
+          lg5 = addNode lg4 (LGB ubi ubo)
           lg6 = deleteEdge lg5 str (e ! str)
           lg7 = addEdge lg6 str rbsi
           lg8 = addEdge lg7 rbso (e ! str)
@@ -177,7 +177,7 @@ getName n = nameLetters !! ((n - 1) `mod` len) : getName ((n - 1) `div` len)
   where len = length nameLetters
 
 text' :: String -> Diagram B
-text' st = bbox (fromIntegral $ length st) <> text st
+text' st = bbox (fromIntegral $ length st) <> text st # font "sans-serif" 
   where bbox nd = phantom $ (square 0.8 # scaleX (0.57 * nd) :: Diagram B)
 
 diagramGraph' :: LG -> Int -> Map.Map Int String -> Set.Set N ->
@@ -284,7 +284,7 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                                  (voidd # named nd === strutY nsep === gd))
                                  # lc (sRGB 1.0 1.0 0.5))
             where (m2, s9, gd) = diagramGraph' lg (e ! g) m s'
-          nd@(LGB p b lvl) -> (m2, s9, ((text (show lvl) # scale 0.6
+          nd@(LGB p b) -> (m2, s9, ((text "0" # scale 0.6
                                         # translate (r2 (0.49, -0.35))) <>
                                        (text "" # named inp #
                                         translate (rotateBy 0 (r2 (0, 0.5)))) <>
@@ -341,7 +341,7 @@ withoutConnectedVoids lg@(LG _ n e _) i s pst = if (Set.member i pst) then (s, p
   (LGL prnt _ bdy) -> withoutConnectedVoids lg (e ! ot) s
                       (foldl (\ps int -> Set.insert int ps) pst [prnt, bdy])
     where ot = if ( i == prnt ) then bdy else prnt
-  (LGB prnt bdy _) -> withoutConnectedVoids lg (e ! ot) s
+  (LGB prnt bdy) -> withoutConnectedVoids lg (e ! ot) s
                       (foldl (\ps int -> Set.insert int ps) pst [prnt, bdy])
     where ot = if ( i == prnt ) then bdy else prnt
   (LGRB prnt bdy _) -> withoutConnectedVoids lg (e ! ot) s
@@ -371,7 +371,7 @@ isParent' lg@(LG _ n e _) i s = if (Set.member i s) then (Nothing, s) else
     where (mb, s'') = isParent' lg (e ! ot1) s'
           s' = Set.insert i s
           (ot1, ot2) = (str, zro)
-  (LGB prnt bdy _) -> isParent' lg (e ! ot) (Set.insert i s)
+  (LGB prnt bdy) -> isParent' lg (e ! ot) (Set.insert i s)
     where ot = if i == prnt then bdy else prnt
   (LGRB prnt bdy _) -> isParent' lg (e ! ot) (Set.insert i s)
     where ot = if i == prnt then bdy else prnt
@@ -388,9 +388,9 @@ isParent lg i = case fst $ isParent' lg i Set.empty of
   Just b -> b
              
 graphList :: LG -> [Int]
-graphList lg@(LG _ n _ _) = 0:(removeDuplicateVoids lg
-                               (Set.fromList $ filter (isParent lg) $
-                                map fst $ Map.toList n))
+graphList lg@(LG _ n _ _) = (removeDuplicateVoids lg
+                             (Set.fromList $ filter (isParent lg) $
+                              map fst $ Map.toList n))
 
 diagramGraph'' :: LG -> Diagram B
 diagramGraph'' l = ans
@@ -398,6 +398,7 @@ diagramGraph'' l = ans
         (ms, ss, ds) = diagramGraph' l (head $ graphList l) Map.empty Set.empty
         folddg (m, s, dia) ind = (m', s', dia ||| strutX 1 ||| lgd)
           where (m', s', lgd) = diagramGraph' l ind m s
+        
 
 
 getOneSide :: Map.Map Int Int -> [Int]
@@ -431,12 +432,13 @@ diagramGraph lg@(LG _ n e _) es scl =  foldl foldlg dgne (delambda lg $ getOneSi
                                    # bg black
   where dgne = diagramGraph'' lg
         foldlg :: Diagram B -> Int -> Diagram B
-        foldlg dia nm = place (bzc dia nm # opacity 0.7 #
-                                  lwL (if Set.member nm es then (3/30) else (1/30))# 
-                                  lc (if Set.member nm es then (sRGB 0.0 1.0 0.0)
-                                      else (sRGB 1.0 1.0 1.0)) #
-                                  (withEnvelope $ (text "" :: Diagram B)))
-                                   (location (lookupOE dia nm) ) <> dia 
+        foldlg dia nm = place (bzc dia nm #
+                               opacity (if Set.member nm es then 1.0 else 0.7) #
+                               lwL (if Set.member nm es then (5/30) else (2/30))# 
+                               lc (if Set.member nm es then (sRGB 0.2 1.0 0.2)
+                                   else (sRGB 1.0 1.0 1.0)) #
+                               (withEnvelope $ (text "" :: Diagram B)))
+                        (location (lookupOE dia nm) ) <> dia 
         bzc :: Diagram B -> Int -> Diagram B
         bzc dia nm = fromSegments [bezier3
                                    ((location (lookupOE dia ((nm))))
@@ -472,9 +474,9 @@ graphString' lg@(LG sz n e _) v s =
       (LGV e1 e2) -> "Variable " ++ show e1 ++ " -> " ++ show (e ! e1) 
                         ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGB e1 e2 l) -> "Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
+      (LGB e1 e2) -> "Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
                         ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
-                        ++ ", level " ++ show l
+                        ++ ", level 0"
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
       (LGRB e1 e2 l) -> "R.Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
                         ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
@@ -553,13 +555,13 @@ traverseGraph lg@(LG _ n e _) pc i f acc = case (n ! i) of
           pc2 = fanin pc lvl (i == str)
   (LGR bdy) -> if ans then traverseGraph lg pc (e ! bdy) f a else (ans, a)
     where (ans, a) = f pc i acc
-  (LGB cin cout lvl) -> if ans then
-                          (if i == cin then traverseGraph lg pc1 (e ! cout) f a
-                           else traverseGraph lg pc2 (e ! cin) f a)
-                        else (ans, a)
+  (LGB cin cout) -> if ans then
+                      (if i == cin then traverseGraph lg pc1 (e ! cout) f a
+                       else traverseGraph lg pc2 (e ! cin) f a)
+                    else (ans, a)
     where (ans, a) = f pc i acc
-          pc1 = unbracket pc lvl
-          pc2 = bracket pc lvl
+          pc1 = unbracket pc 0
+          pc2 = bracket pc 0
   (LGRB cin cout lvl) -> if ans then
                            (if i == cin then traverseGraph lg pc1 (e ! cout) f a
                             else traverseGraph lg pc2 (e ! cin) f a)
@@ -610,27 +612,10 @@ buildProgram lg = case snd $ traverseGraph lg emptyPC 0 (buildProgram' lg) [] of
   [NoArgs e] -> e
   _ -> error "Malformed buildProgram!"
 
-
 data LRule = LR {
   lrname :: String,
   lrfunc :: LG -> N -> ([Int], LG)
 }
-rule1a' :: LG -> N -> ([Int], LG)
-rule1a' lg@(LG _ n e _) nd@(LGA va lbd vd) = case n ! (e ! lbd) of
-  l@(LGL p var vb) -> ([va, (e ! va), vd, (e ! vd), lbd, p, vb,
-                        (e ! vb), vc, (e ! vc)], lg6)
-    where (vc, avar) = case n ! (e ! var) of
-            lgv@(LGV varc _) -> (varc, lgv)
-            _ -> error "Nonvariable var link!"
-          lg2 = deleteNode lg nd
-          lg3 = deleteNode lg2 l
-          lg4 = deleteNode lg3 avar
-          lg5 = addEdge lg4 (e ! vc) (e ! vd)
-          lg6 = addEdge lg5 (e ! vb) (e ! va)
-  _ -> ([], lg)
-rule1a' lg _ = ([], lg)
-rule1a :: LRule
-rule1a = LR "I.a" rule1a'
 
 applyRule :: LG -> LRule -> Int -> ([Int], LG)
 applyRule lg r n = case traverseGraph lg emptyPC 0 (aprule lg) (n, [], lg) of
@@ -641,16 +626,15 @@ applyRule lg r n = case traverseGraph lg emptyPC 0 (aprule lg) (n, [], lg) of
           (l, lg') -> if n' == 0 then (False, (0, l, lg')) else
                         (True, (n' - 1, [], lg))
 
-diagramRules :: LG -> [(LRule, Int)] -> Double -> Diagram B
-diagramRules lg [] scl =
-  text' "Done" # scale (scl / 30) # frame (scl / 60) # fc white ===
-  diagramGraph lg Set.empty 1 # sizedAs (square scl :: Diagram B)
-diagramRules lg ((lr, lrl):lrs) scl =
-  ((text' ("Applying rule " ++ (lrname lr)) # scale (scl / 30) # frame (scl / 60)
-    # fc white ===
-  (diagramGraph lg (Set.fromList rls) 1) # sizedAs (square scl :: Diagram B)) |||
-  diagramRules lg' lrs scl) # bg black
-    where (rls, lg') = applyRule lg lr lrl
+diagramGraphWithHeading :: LG -> Set.Set Int -> Double -> String -> Diagram B
+diagramGraphWithHeading lg s scl h =
+  ((text' h # scale (scl / 30) # fc white # bg black <>
+   square scl # scaleY (2 / 30) # fc black # lw 0)
+   # translateY (scl * 15.5 / 30) <>
+  (diagramGraph lg s 1 # sizedAs (square scl :: Diagram B) # centerXY <>
+  square scl # fc black # lw 0))
+  # frame (scl/60) # bg white
+
   
-  
+
   

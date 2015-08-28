@@ -51,7 +51,7 @@ inc1 =
       ;
 
 inc5 = [\f.[\x.[[\g.[g [g x]]] [\y.[f y]]]]];
-inc6 = [churchPower five two] incr nil;
+inc7 = [churchPower five two] incr nil;
 
 inc2 = [[\g.[g [g [\x.x]]]]
        [\h.[[\f.[f [f [\z.z]]]]
@@ -62,3 +62,5 @@ inc3 = \x.[x [\y.x x]];
 
 inc0 = [\x y z.[x x] [y y]] nil nil nil;
 inc = \x.[x [\y z.x [y z]]];
+
+inc6 = [\x.x] [\x.x];
