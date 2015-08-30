@@ -417,12 +417,12 @@ delambda lg@(LG _ n _ _) (i:t) = ans
 
 lookupOE :: Diagram B -> Int -> Subdiagram B V2 Double Any
 lookupOE dg i = case lookupName i dg of
-  Nothing -> error ("No vertex" ++ show i)
+  Nothing -> error ("No vertex " ++ show i)
   Just sdg -> sdg
 
 lookupOEN :: Diagram B -> N -> Subdiagram B V2 Double Any
 lookupOEN dg n = case lookupName n dg of
-  Nothing -> error ("No vertex" ++ show n)
+  Nothing -> error ("No vertex node " ++ show n)
   Just sdg -> sdg
 
 
