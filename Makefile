@@ -10,9 +10,9 @@ all: debug
 
 # Toolchain.
 CC=gcc
-GHC=ghc
+GHC=cabal exec ghc --
 HAPPY=happy
-GHCFLAGS=-Wall -XConstrainedClassMethods -XDeriveDataTypeable -XDeriveFoldable -XDeriveFunctor -XDeriveGeneric -XDeriveTraversable -XEmptyDataDecls -XExistentialQuantification -XExplicitNamespaces -XFlexibleContexts -XFlexibleInstances -XForeignFunctionInterface -XFunctionalDependencies -XGeneralizedNewtypeDeriving -XImplicitParams -XKindSignatures -XLiberalTypeSynonyms -XMagicHash -XMultiParamTypeClasses -XParallelListComp -XPatternGuards -XPostfixOperators -XRankNTypes -XRecursiveDo -XScopedTypeVariables -XStandaloneDeriving -XTypeOperators -XTypeSynonymInstances -XUnboxedTuples -XUnicodeSyntax -XUnliftedFFITypes -threaded
+GHCFLAGS=-Wall -XConstrainedClassMethods -XDeriveDataTypeable -XDeriveFoldable -XDeriveFunctor -XDeriveGeneric -XDeriveTraversable -XEmptyDataDecls -XExistentialQuantification -XExplicitNamespaces -XFlexibleContexts -XFlexibleInstances -XForeignFunctionInterface -XFunctionalDependencies -XGeneralizedNewtypeDeriving -XImplicitParams -XKindSignatures -XLiberalTypeSynonyms -XMagicHash -XMultiParamTypeClasses -XParallelListComp -XPatternGuards -XPostfixOperators -XRankNTypes -XRecursiveDo -XScopedTypeVariables -XStandaloneDeriving -XTypeOperators -XTypeSynonymInstances -XUnboxedTuples -XUnicodeSyntax -XUnliftedFFITypes
 HAPPYFLAGS=-a -g -c -i
 
 
@@ -53,7 +53,7 @@ release: PACK:=upx --best $(TARGET)
 
 .PHONY: debug 
 debug: $(TARGET)
-debug: GHCFLAGS:= $(GHCFLAGS)
+debug: GHCFLAGS:=-prof -fprof-auto -rtsopts $(GHCFLAGS)
 
 
 .PHONY: clean
@@ -67,7 +67,7 @@ backup: clean release
 
 .PHONY: run
 run: all
-	./$(TARGET) -o lnz.svg
+	./$(TARGET) -o lnz.svg +RTS -p -xc
 	start chrome lnz.svg
 
 .PHONY: unixify

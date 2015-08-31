@@ -4,6 +4,7 @@ import Data.Map ((!))
 import qualified Data.Set as Set
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
+import Debug.Trace
 
 
 rule1a' :: LG -> N -> ([Int], LG)
@@ -228,7 +229,7 @@ rule7c' lg@(LG _ n e _) ocbnd@(LGCB va cb cblvl) = case n ! (e ! cb) of
                                    lg4)
     where lg2 = deleteNode lg cbnd
           lg3 = deleteNode lg2 ocbnd
-          lg4 = addEdge lg3 cb (e ! vb)
+          lg4 = addEdge lg3 (e ! va) (e ! vb)
    _ -> ([], lg)
 rule7c' lg _ = ([], lg)
 rule7c :: LRule
@@ -274,7 +275,7 @@ diagramRules' :: LG -> [(LRule, Int)] -> Double -> Int -> Int -> Diagram B
 diagramRules' lg [] scl cnt rws = diagramGraphWithHeading lg Set.empty scl "Done" 
   # translateX ((fromIntegral (cnt `mod` rws)) * 30.5 * scl / 30.0) 
   # translateY ((fromIntegral (cnt `div` rws)) * (-32) * scl / 30.0)
-diagramRules' lg ((lr, lrl):lrs) scl cnt rws =
+diagramRules' lg ((lr, lrl):lrs) scl cnt rws = 
   (diagramGraphWithHeading lg (Set.fromList rls) scl ("Applying rule " ++ lrname lr))
   # translateX ((fromIntegral (cnt `mod` rws)) * 30.5 * scl / 30.0) 
   # translateY ((fromIntegral (cnt `div` rws)) * (-32) * scl / 30.0) <>

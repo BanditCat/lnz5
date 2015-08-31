@@ -2,7 +2,8 @@ module Main where
 import LCParser
 import Lamping
 import Rules
-import Diagrams.Backend.SVG.CmdLine
+import Diagrams.Backend.SVG
+import Diagrams.TwoD.Size
 
 
 main :: IO ()
@@ -13,8 +14,9 @@ main = do fc <- lcparseFile "base.lnz"
                putStrLn $ getLineString fc "inc2"
                putStrLn $ show (graphList lg)
                
-               mainWith (diagramRules lg
-                         [(rule1a, 0),
+               renderSVG "lnz.svg" (dims2D 1920 1080) (diagramRules lg
+                         [
+                          (rule1a, 0),
                           (rule1a, 0),
                           (rule3a, 0),
                           (rule2a, 0),
@@ -26,5 +28,9 @@ main = do fc <- lcparseFile "base.lnz"
                           (rule7f, 0),
                           (rule6e, 0),
                           (rule2a, 0),
+                          (rule7c, 0),
+                          (rule7c, 0),
+                          (rule7c, 0),
+                          (rule2a, 0),
                           (rule7c, 0)
-                         ] 128 4)
+                         ] 128 6)

@@ -6,7 +6,7 @@ import qualified Data.Set as Set
 import qualified Data.List as List
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
-
+import Debug.Trace
 
 
 
@@ -64,7 +64,7 @@ nextVertices l n = (nv:rest,l'')
         (nv, l') = nextVertex l
 
 deleteVertex :: LG -> Int -> LG
-deleteVertex (LG sz n e f) i = LG sz n e (i:f)
+deleteVertex (LG sz n e f) i = LG sz (Map.delete i n) e (i:f)
 
 addEdge :: LG -> Int -> Int -> LG
 addEdge (LG sz n e f) v1 v2 = LG sz n ne f
@@ -364,7 +364,7 @@ isParent' :: LG -> Int -> Set.Set Int -> (Maybe Bool, Set.Set Int)
 isParent' lg@(LG _ n e _) i s = if (Set.member i s) then (Nothing, s) else
                                   case (n ! i) of
   (LGA prnt _ _) -> if prnt == i then (Just True, s) else (Just False, s)
-  (LGF out str zro _) -> if not (out == i) then
+  (LGF out str zro _) -> if out /= i then
                            isParent' lg (e ! out) (Set.insert i s) else case mb of
     Just b -> (Just b, s'')
     Nothing -> isParent' lg (e ! ot2) s''
@@ -458,41 +458,44 @@ graphString' lg@(LG sz n e _) v s =
     graphString' lg (v + 1) s
   else
     case (n ! v) of
-      (LGA e1 e2 e3) -> "Application " ++ show e1 ++ " -> " ++ show (e ! e1) 
-                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
-                        ++ ", " ++ show e3 ++ " -> " ++ show (e ! e3)
+      (LGA e1 e2 e3) -> "Application " ++ show e1
+                        ++ ", " ++ show e2 
+                        ++ ", " ++ show e3 
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGL e1 e2 e3) -> "Lambda " ++ show e1 ++ " -> " ++ show (e ! e1) 
-                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
-                        ++ ", " ++ show e3 ++ " -> " ++ show (e ! e3)
+      (LGL e1 e2 e3) -> "Lambda " ++ show e1  
+                        ++ ", " ++ show e2
+                        ++ ", " ++ show e3
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGF e1 e2 e3 l) -> "Fan " ++ show e1 ++ " -> " ++ show (e ! e1) 
-                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
-                        ++ ", " ++ show e3 ++ " -> " ++ show (e ! e3)
+      (LGF e1 e2 e3 l) -> "Fan " ++ show e1 
+                        ++ ", " ++ show e2
+                        ++ ", " ++ show e3
                         ++ ", level " ++ show l
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGV e1 e2) -> "Variable " ++ show e1 ++ " -> " ++ show (e ! e1) 
-                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
+      (LGV e1 e2) -> "Variable " ++ show e1 
+                        ++ ", " ++ show e2
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGB e1 e2) -> "Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
-                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
+      (LGB e1 e2) -> "Bracket " ++ show e1 
+                        ++ ", " ++ show e2
                         ++ ", level 0"
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGRB e1 e2 l) -> "R.Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
-                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
+      (LGRB e1 e2 l) -> "R.Bracket " ++ show e1  
+                        ++ ", " ++ show e2 
                         ++ ", level " ++ show l
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGCB e1 e2 l) -> "C.Bracket " ++ show e1 ++ " -> " ++ show (e ! e1) 
-                        ++ ", " ++ show e2 ++ " -> " ++ show (e ! e2)
+      (LGCB e1 e2 l) -> "C.Bracket " ++ show e1 
+                        ++ ", " ++ show e2
                         ++ ", level " ++ show l
                         ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGR e1) -> "Root " ++ show e1 ++ " -> " ++ show (e ! e1) 
+      (LGR e1) -> "Root " ++ show e1  
                   ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
-      (LGN e1) -> "Void " ++ show e1 ++ " -> " ++ show (e ! e1) 
+      (LGN e1) -> "Void " ++ show e1 
                   ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
+
+edgeString :: LG -> String
+edgeString (LG _ _ e _) = Map.foldlWithKey (\s e eo -> show e ++ " -> " ++ show eo ++ "\n" ++ s) "" e 
       
 graphString :: LG -> String
-graphString l = graphString' l 0 Set.empty
+graphString l = graphString' l 0 Set.empty ++ "\nEdges:\n" ++ edgeString l
 
 data PC = PCEmpty
         | PC [Bool] PC PC
@@ -618,9 +621,10 @@ data LRule = LR {
 }
 
 applyRule :: LG -> LRule -> Int -> ([Int], LG)
-applyRule lg r n = case traverseGraph lg emptyPC 0 (aprule lg) (n, [], lg) of
-  (_, (_, l, lg')) -> (l, lg')
-  where aprule :: LG -> PC -> Int -> (Int, [Int], LG) -> (Bool, (Int, [Int], LG))
+applyRule lg r n = Debug.Trace.trace (graphString lg) ans
+  where ans = case traverseGraph lg emptyPC 0 (aprule lg) (n, [], lg) of
+          (_, (_, l, lg')) -> (l, lg')
+        aprule :: LG -> PC -> Int -> (Int, [Int], LG) -> (Bool, (Int, [Int], LG))
         aprule (LG _ nds _ _) _ i (n', _, _) = case (lrfunc r) lg (nds ! i) of
           ([], _) -> (True, (n', [], lg))
           (l, lg') -> if n' == 0 then (False, (0, l, lg')) else
