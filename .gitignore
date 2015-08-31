@@ -3,3 +3,4 @@
 LCParser.hs
 *.hi
 *.info
+.cabal-sandbox
