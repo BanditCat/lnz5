@@ -6,7 +6,6 @@ import qualified Data.Set as Set
 import qualified Data.List as List
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
-import Debug.Trace
 
 
 
@@ -453,7 +452,7 @@ diagramGraph lg@(LG _ n e _) es scl =  foldl foldlg dgne (delambda lg $ getOneSi
 
 
 graphString' :: LG -> Int -> Set.Set N -> String
-graphString' lg@(LG sz n e _) v s =
+graphString' lg@(LG sz n _ _) v s =
   if v >= sz then "" else if (not $ Map.member v n) || Set.member (n ! v) s then
     graphString' lg (v + 1) s
   else
@@ -492,7 +491,7 @@ graphString' lg@(LG sz n e _) v s =
                   ++ "\n" ++ graphString' lg (v + 1) (Set.insert (n ! v) s)
 
 edgeString :: LG -> String
-edgeString (LG _ _ e _) = Map.foldlWithKey (\s e eo -> show e ++ " -> " ++ show eo ++ "\n" ++ s) "" e 
+edgeString (LG _ _ e _) = Map.foldlWithKey (\s et eo -> show et ++ " -> " ++ show eo ++ "\n" ++ s) "" e 
       
 graphString :: LG -> String
 graphString l = graphString' l 0 Set.empty ++ "\nEdges:\n" ++ edgeString l
@@ -621,7 +620,7 @@ data LRule = LR {
 }
 
 applyRule :: LG -> LRule -> Int -> ([Int], LG)
-applyRule lg r n = Debug.Trace.trace (graphString lg) ans
+applyRule lg r n = ans
   where ans = case traverseGraph lg emptyPC 0 (aprule lg) (n, [], lg) of
           (_, (_, l, lg')) -> (l, lg')
         aprule :: LG -> PC -> Int -> (Int, [Int], LG) -> (Bool, (Int, [Int], LG))

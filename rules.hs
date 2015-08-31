@@ -4,7 +4,6 @@ import Data.Map ((!))
 import qualified Data.Set as Set
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
-import Debug.Trace
 
 
 rule1a' :: LG -> N -> ([Int], LG)
