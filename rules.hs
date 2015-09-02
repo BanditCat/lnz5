@@ -136,7 +136,7 @@ rule2c' lg@(LG _ n e _) (LGF lbd va vb flvl) = case n ! (e ! lbd) of
           lg19 = addEdge lg18 nvv nlv
           lg20 = addEdge lg19 lbd (e ! vc)
           lg21 = addEdge lg20 nfo (e ! vd)
-          lg' = addEdge lg18 lbd nfo
+          lg' = addEdge lg19 lbd nfo
    _ -> ([], lg)
 rule2c' lg _ = ([], lg)
 rule2c :: LRule
@@ -198,8 +198,119 @@ rule4d' lg _ = ([], lg)
 rule4d :: LRule
 rule4d = LR "IV.d" rule4d'
 
-rule6e' :: LG -> N -> ([Int], LG)
-rule6e' lg@(LG _ n e _) fnd@(LGF cb va vb flvl) = case n ! (e ! cb) of
+rule4e' :: LG -> N -> ([Int], LG)
+rule4e' lg@(LG _ n e _) (LGA va fos vd) = case n ! (e ! fos) of
+   (LGF foo vb vc flvl) -> if fos /= (e ! foo) then ([], lg) else
+                            ([va, (e ! va), fos, foo, vb, (e ! vb), vc, (e ! vc),
+                            vd, (e ! vd)], lg18)
+    where lg2 = deleteEdge lg va (e ! va)
+          lg3 = deleteEdge lg2 vb (e ! vb)
+          lg4 = deleteEdge lg3 vc (e ! vc)
+          lg5 = deleteEdge lg4 vd (e ! vd)
+          lg6 = deleteEdge lg5 foo fos
+          ([nap, naf, naa], lg7) = nextVertices lg6 3
+          lg8 = addNode lg7 (LGA nap naf naa)
+          ([nfo, nfs, nfz], lg9) = nextVertices lg8 3
+          lg10 = addNode lg9 (LGF nfo nfs nfz flvl)
+          lg11 = addEdge lg10 (e ! va) foo
+          lg12 = addEdge lg11 vb va
+          lg13 = addEdge lg12 fos (e ! vb)
+          lg14 = addEdge lg13 vc nap
+          lg15 = addEdge lg14 naf (e ! vc)
+          lg16 = addEdge lg15 vd nfs
+          lg17 = addEdge lg16 naa nfz
+          lg18 = addEdge lg17 nfo (e ! vd)
+          
+   _ -> ([], lg)
+rule4e' lg _ = ([], lg)
+rule4e :: LRule
+rule4e = LR "IV.e" rule4e'
+
+rule5a' :: LG -> N -> ([Int], LG)
+rule5a' lg@(LG _ n e _) (LGF fano va vb jlvl) = case n ! (e ! fano) of
+   (LGF fani vc vd ilvl) -> if fani /= (e ! fano) || ilvl == jlvl then ([], lg) else
+                              ([va, (e ! va), fani, fano, vb, (e ! vb), vc, (e ! vc),
+                                vd, (e ! vd)], lg17)
+    where lg2 = deleteEdge lg fani fano
+          lg3 = deleteEdge lg2 va (e ! va)
+          lg4 = deleteEdge lg3 vb (e ! vb)
+          lg5 = deleteEdge lg4 vc (e ! vc)
+          lg6 = deleteEdge lg5 vd (e ! vd)
+          ([nfio, nfis, nfiz, nfoo, nfos, nfoz], lg7) = nextVertices lg6 6
+          lg8 = addNode lg7 (LGF nfio nfis nfiz jlvl)
+          lg9 = addNode lg8 (LGF nfoo nfos nfoz ilvl)
+          lg10 = addEdge lg9 (e ! va) fani
+          lg11 = addEdge lg10 (e ! vb) nfoo
+          lg12 = addEdge lg11 vc va
+          lg13 = addEdge lg12 vd nfis
+          lg14 = addEdge lg13 vb nfos
+          lg15 = addEdge lg14 nfoz nfiz
+          lg16 = addEdge lg15 fano (e ! vc)
+          lg17 = addEdge lg16 nfio (e ! vd)
+   _ -> ([], lg)
+rule5a' lg _ = ([], lg)
+rule5a :: LRule
+rule5a = LR "V.a" rule5a'
+
+rule5b' :: LG -> N -> ([Int], LG)
+rule5b' lg@(LG _ n e _) fni@(LGF fano va vb jlvl) = case n ! (e ! fano) of
+   fno@(LGF fani vc vd ilvl) -> if fani /= (e ! fano) || ilvl /= jlvl then ([], lg) else
+                                  ([va, (e ! va), fani, fano, vb, (e ! vb), vc, (e ! vc),
+                                    vd, (e ! vd)], lg5)
+    where lg2 = deleteNode lg fni
+          lg3 = deleteNode lg2 fno
+          lg4 = addEdge lg3 (e ! va) (e ! vc)
+          lg5 = addEdge lg4 (e ! vb) (e ! vd)
+   _ -> ([], lg)
+rule5b' lg _ = ([], lg)
+rule5b :: LRule
+rule5b = LR "V.b" rule5b'
+
+rule6a' :: LG -> N -> ([Int], LG)
+rule6a' lg@(LG _ n e _) (LGB va fan) = case n ! (e ! fan) of
+   fn@(LGF p vb vc flvl) -> if p /= (e ! fan) then ([], lg) else
+                           ([va, (e ! va), p, fan, vb, (e ! vb),
+                             vc, (e ! vc)], lg12)
+    where lg2 = deleteNode lg fn
+          lg3 = deleteEdge lg2 va (e ! va)
+          ([nbo, nbi], lg4) = nextVertices lg3 2
+          lg5 = addNode lg4 (LGB nbi nbo)
+          ([nfo, nfs, nfz], lg6) = nextVertices lg5 3
+          lg7 = addNode lg6 (LGF nfo nfs nfz (flvl + 1))
+          lg8 = addEdge lg7 (e ! va) nfo
+          lg9 = addEdge lg8 nfs va
+          lg10 = addEdge lg9 fan (e ! vb)
+          lg11 = addEdge lg10 nfz nbi
+          lg12 = addEdge lg11 nbo (e ! vc)
+   _ -> ([], lg)
+rule6a' lg _ = ([], lg)
+rule6a :: LRule
+rule6a = LR "VI.a" rule6a'
+
+rule6cd' :: LG -> N -> ([Int], LG)
+rule6cd' lg@(LG _ n e _) fnd@(LGF rb va vb ilvl) = case n ! (e ! rb) of
+  (LGRB rbo vc jlvl) -> if rb /= (e ! rbo) || ilvl == jlvl then ([], lg) else
+                          ([va, (e ! va), rb, rbo, vb, (e ! vb), vc, (e ! vc)],
+                           lg12)
+    where lg2 = deleteNode lg fnd
+          lg3 = deleteEdge lg2 vc (e ! vc)
+          ([nfo, nfs, nfz], lg4) = nextVertices lg3 3
+          lg5 = addNode lg4 (LGF nfo nfs nfz
+                             (if ilvl > jlvl then ilvl - 1 else ilvl))
+          ([nrbi, nrbo], lg6) = nextVertices lg5 2
+          lg7 = addNode lg6 (LGRB nrbi nrbo jlvl)
+          lg8 = addEdge lg7 (e ! va) rbo
+          lg9 = addEdge lg8 (e ! vb) nrbi
+          lg10 = addEdge lg9 nfs vc
+          lg11 = addEdge lg10 nfz nrbo
+          lg12 = addEdge lg11 nfo (e ! vc)
+  _ -> ([], lg)
+rule6cd' lg _ = ([], lg)
+rule6cd :: LRule
+rule6cd = LR "VI.cd" rule6cd'
+
+rule6ef' :: LG -> N -> ([Int], LG)
+rule6ef' lg@(LG _ n e _) fnd@(LGF cb va vb flvl) = case n ! (e ! cb) of
    (LGCB vc cbo cblvl) -> if cb /= (e ! cbo) || cblvl == flvl then ([], lg) else
                             ([va, (e ! va), cb, cbo, vb, (e ! vb), vc, (e ! vc)],
                              lg12)
@@ -217,9 +328,9 @@ rule6e' lg@(LG _ n e _) fnd@(LGF cb va vb flvl) = case n ! (e ! cb) of
           lg12 = addEdge lg11 nfo (e ! vc)
           
    _ -> ([], lg)
-rule6e' lg _ = ([], lg)
-rule6e :: LRule
-rule6e = LR "VI.e" rule6e'
+rule6ef' lg _ = ([], lg)
+rule6ef :: LRule
+rule6ef = LR "VI.ef" rule6ef'
 
 rule7c' :: LG -> N -> ([Int], LG)
 rule7c' lg@(LG _ n e _) ocbnd@(LGCB va cb cblvl) = case n ! (e ! cb) of
@@ -268,12 +379,36 @@ rule7h' lg _ = ([], lg)
 rule7h :: LRule
 rule7h = LR "VII.h" rule7h'
 
-
-
+rules :: [LRule]
+rules = [
+  rule1a,
+  rule1b,
+  rule2a,
+  rule2b,
+  rule2c,
+  rule3a,
+  rule4b,
+  rule4d,
+  rule4e,
+  rule5a,
+  rule5b,
+  rule6a,
+  rule6cd,
+  rule6ef,
+  rule7c,
+  rule7f
+  ]
+  
 diagramRules' :: LG -> [(LRule, Int)] -> Double -> Int -> Int -> Diagram B
-diagramRules' lg [] scl cnt rws = diagramGraphWithHeading lg Set.empty scl "Done" 
+diagramRules' lg [] scl cnt rws = diagramGraphWithHeading lg (Set.fromList rls) scl nm'
   # translateX ((fromIntegral (cnt `mod` rws)) * 30.5 * scl / 30.0) 
-  # translateY ((fromIntegral (cnt `div` rws)) * (-32) * scl / 30.0)
+  # translateY ((fromIntegral (cnt `div` rws)) * (-32) * scl / 30.0) <>
+  nxt 
+  where nxt = if rls == [] then mempty else nxtp
+        nxtp = diagramRules' lg' [] scl (cnt + 1) rws
+        (nm, rls, lg') = applyAnyRule lg rules
+        nm' = if nm == "" then "Done." else "Applying rule " ++ nm
+        
 diagramRules' lg ((lr, lrl):lrs) scl cnt rws = 
   (diagramGraphWithHeading lg (Set.fromList rls) scl ("Applying rule " ++ lrname lr))
   # translateX ((fromIntegral (cnt `mod` rws)) * 30.5 * scl / 30.0) 

@@ -6,8 +6,7 @@ import qualified Data.Set as Set
 import qualified Data.List as List
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
-
-
+import Debug.Trace
 
   -- Lamping graph node type
 data N
@@ -229,11 +228,13 @@ diagramGraph' lg@(LG _ n e _) v m s = if Set.member (n ! v) s then (m, s, mempty
                                  # fc (sRGB 0.75 1.0 0.75) # lc (sRGB 0.75 1.0 0.75))
             where (m3, s5, bdyd) = diagramGraph' lg (e ! bdy) m2 s'
                   m2 = Map.insert (e ! var) nm m
-                  nm = getName $ length m2
-          nd@(LGV p lbd) -> (m, s', ((text "" # named p #
+                  nm = if Map.member (e ! var) m then m ! (e ! var) else getName $ length m2
+          nd@(LGV p lbd) -> (m2, s', ((text "" # named p #
                                      translate (rotateBy 0 (r2 (0, 0.5)))) <>
-                                    (text' (m ! lbd) # named nd))
+                                    (text' nm # named nd))
                                     # fc (sRGB 0.75 0.75 1.0))
+            where m2 = Map.insert lbd nm m
+                  nm = if Map.member lbd m then m ! lbd else getName $ length m2
           nd@(LGF out st zro lvl) -> if out == v then
                                 (m3, s7, ((text "" # named out #
                                           translate (rotateBy 0 (r2 (0, 0.6)))) <>
@@ -628,6 +629,21 @@ applyRule lg r n = ans
           ([], _) -> (True, (n', [], lg))
           (l, lg') -> if n' == 0 then (False, (0, l, lg')) else
                         (True, (n' - 1, [], lg))
+
+applyAnyRule :: LG -> [LRule] -> (String, [Int], LG)
+applyAnyRule lg rs = Debug.Trace.trace (nam ++ "\n") ans
+  where ans@(nam, _, _) = case traverseGraph lg emptyPC 0 (aprule lg) ("", [], lg) of
+          (_, (st, l, lg')) -> (st, l, lg')
+        aprule :: LG -> PC -> Int -> (String, [Int], LG) -> (Bool, (String, [Int], LG))
+        aprule _ _ i (_, _, _) = case foldl (funcfld lg i) ("", [], lg) rs of
+          (_, [], _) -> (True, ("", [], lg))
+          (st, l, lg') -> (False, (st, l, lg'))
+        funcfld :: LG -> Int -> (String, [Int], LG) -> LRule -> (String, [Int], LG)
+        funcfld (LG _ fnds _ _) fi (_, [], _) flr = case (lrfunc flr) lg (fnds ! fi) of
+          ([], _) -> ("", [], lg)
+          (l, lg') -> (lrname flr, l, lg')
+        funcfld _ _ an@(_, _, _) _ = an
+          
 
 diagramGraphWithHeading :: LG -> Set.Set Int -> Double -> String -> Diagram B
 diagramGraphWithHeading lg s scl h =
