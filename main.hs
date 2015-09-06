@@ -21,7 +21,7 @@ main = do fc <- lcparseFile "base.lnz"
                           -- (rule3a, 0),
                           -- (rule2a, 0),
                           -- (rule4b, 0),
-                          -- (rule4d, 0),
+                          -- (rule4d, 0)
                           -- (rule4d, 0),
                           -- (rule7h, 0),
                           -- (rule7h, 0),
@@ -39,5 +39,5 @@ main = do fc <- lcparseFile "base.lnz"
                           -- (rule6a, 0),
                           -- (rule5a, 0),
                           -- (rule6cd, 0),
-                          -- (rule6cd, 0)
-                         ] 128 8)
+                          -- (rule6cd, 0)y
+                         ] 128 8 32)

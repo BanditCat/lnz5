@@ -254,9 +254,9 @@ rule5a = LR "V.a" rule5a'
 
 rule5b' :: LG -> N -> ([Int], LG)
 rule5b' lg@(LG _ n e _) fni@(LGF fano va vb jlvl) = case n ! (e ! fano) of
-   fno@(LGF fani vc vd ilvl) -> if fani /= (e ! fano) || ilvl /= jlvl then ([], lg) else
-                                  ([va, (e ! va), fani, fano, vb, (e ! vb), vc, (e ! vc),
-                                    vd, (e ! vd)], lg5)
+   fno@(LGF fani vc vd ilvl) -> if fani /= (e ! fano) || ilvl /= jlvl then ([], lg)
+                                else ([va, (e ! va), fani, fano, vb, (e ! vb), vc,
+                                       (e ! vc), vd, (e ! vd)], lg5)
     where lg2 = deleteNode lg fni
           lg3 = deleteNode lg2 fno
           lg4 = addEdge lg3 (e ! va) (e ! vc)
@@ -399,22 +399,23 @@ rules = [
   rule7f
   ]
   
-diagramRules' :: LG -> [(LRule, Int)] -> Double -> Int -> Int -> Diagram B
-diagramRules' lg [] scl cnt rws = diagramGraphWithHeading lg (Set.fromList rls) scl nm'
+diagramRules' :: LG -> [(LRule, Int)] -> Double -> Int -> Int -> Int -> Diagram B
+diagramRules' lg [] scl cnt rws maxd = 
+  diagramGraphWithHeading lg (Set.fromList rls) scl nm'
   # translateX ((fromIntegral (cnt `mod` rws)) * 30.5 * scl / 30.0) 
   # translateY ((fromIntegral (cnt `div` rws)) * (-32) * scl / 30.0) <>
   nxt 
   where nxt = if rls == [] then mempty else nxtp
-        nxtp = diagramRules' lg' [] scl (cnt + 1) rws
-        (nm, rls, lg') = applyAnyRule lg rules
-        nm' = if nm == "" then "Done." else "Applying rule " ++ nm
-        
-diagramRules' lg ((lr, lrl):lrs) scl cnt rws = 
+        nxtp = diagramRules' lg' [] scl (cnt + 1) rws maxd
+        (nm, rls', lg') = applyAnyRule lg rules
+        rls = if cnt >= maxd then [] else rls'
+        nm' = if cnt >= maxd || nm == "" then "Done." else "Applying rule " ++ nm
+diagramRules' lg ((lr, lrl):lrs) scl cnt rws maxd = if cnt >= maxd then mempty else 
   (diagramGraphWithHeading lg (Set.fromList rls) scl ("Applying rule " ++ lrname lr))
   # translateX ((fromIntegral (cnt `mod` rws)) * 30.5 * scl / 30.0) 
   # translateY ((fromIntegral (cnt `div` rws)) * (-32) * scl / 30.0) <>
-  (diagramRules' lg' lrs scl (cnt + 1) rws)
+  (diagramRules' lg' lrs scl (cnt + 1) rws maxd)
     where (rls, lg') = applyRule lg lr lrl
 
-diagramRules :: LG -> [(LRule, Int)] -> Double -> Int -> Diagram B
-diagramRules lg rl scl rws = diagramRules' lg rl scl 0 rws  
+diagramRules :: LG -> [(LRule, Int)] -> Double -> Int -> Int -> Diagram B
+diagramRules lg rl scl rws maxd = diagramRules' lg rl scl 0 rws maxd

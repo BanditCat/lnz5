@@ -6,9 +6,10 @@ import qualified Data.Set as Set
 import qualified Data.List as List
 import Diagrams.Prelude hiding (N, LG)
 import Diagrams.Backend.SVG.CmdLine
-import Debug.Trace
+--import qualified Control.Exception as Exception
+--import qualified Debug.Trace as Trace
 
-  -- Lamping graph node type
+-- Lamping graph node type
 data N
   = LGA Int Int Int
   | LGL Int Int Int
@@ -515,7 +516,7 @@ unbracket PCEmpty _ = error "Level too high in a unbracket!"
 
 cbracket :: PC -> Int -> PC
 cbracket (PC d (PC cd cc cpc) pc) 0 = PC cd cpc (PC d cc pc)
-cbracket (PC _ PCEmpty _) _ = error "No closure!"
+cbracket (PC _ PCEmpty _) 0 = error "No closure!"
 cbracket (PC d c pc) n = PC d c (cbracket pc (n - 1))
 cbracket PCEmpty _ = error "Level to high in a cbracket!"
 
@@ -532,54 +533,55 @@ fanin PCEmpty _ _ = error "Level too high in a fanin!"
 
 fanout :: PC -> Int -> (Bool, PC)
 fanout (PC (h:t) c pc) 0 = (h, PC t c pc)
-fanout (PC [] _ _) _ = error "Out of directions in a fanout!"
+fanout (PC [] _ _) 0 = error "Out of directions in a fanout!"
 fanout (PC d c pc) n = (a, PC d c cont)
   where (a, cont) = fanout pc (n - 1)
 fanout PCEmpty _ = error "Level too high in a fanout!"
 
 traverseGraph :: LG -> PC -> Int -> (PC -> Int -> a -> (Bool, a)) -> a -> (Bool, a)
-traverseGraph lg@(LG _ n e _) pc i f acc = case (n ! i) of
-  (LGA _ func arg) -> if ans then
-                        (if ansf then (ansa, a2) else (ansf, a1))
-                      else (ans, a)
-    where (ans, a) = f pc i acc
-          (ansf, a1) = traverseGraph lg pc (e ! func) f a
-          (ansa, a2) = traverseGraph lg pc (e ! arg) f a1
-  (LGL _ _ bdy) -> if ans then traverseGraph lg pc (e ! bdy) f a else (ans, a)
-    where (ans, a) = f pc i acc
-  (LGV _ _) -> f pc i acc
-  (LGF out str zro lvl) -> if ans then
-                             (if i == out then traverseGraph lg pc1 (e ! ot) f a
-                              else traverseGraph lg pc2 (e ! out) f a)
-                           else (ans, a)
-    where (ans, a) = f pc i acc
-          (isstr, pc1) = fanout pc lvl
-          ot = if isstr then str else zro
-          pc2 = fanin pc lvl (i == str)
-  (LGR bdy) -> if ans then traverseGraph lg pc (e ! bdy) f a else (ans, a)
-    where (ans, a) = f pc i acc
-  (LGB cin cout) -> if ans then
-                      (if i == cin then traverseGraph lg pc1 (e ! cout) f a
-                       else traverseGraph lg pc2 (e ! cin) f a)
-                    else (ans, a)
-    where (ans, a) = f pc i acc
-          pc1 = unbracket pc 0
-          pc2 = bracket pc 0
-  (LGRB cin cout lvl) -> if ans then
-                           (if i == cin then traverseGraph lg pc1 (e ! cout) f a
-                            else traverseGraph lg pc2 (e ! cin) f a)
-                         else (ans, a)
-    where (ans, a) = f pc i acc
-          pc1 = unbracket pc lvl
-          pc2 = bracket pc lvl
-  (LGCB cin cout lvl) -> if ans then
-                           (if i == cin then traverseGraph lg pc1 (e ! cout) f a
-                            else traverseGraph lg pc2 (e ! cin) f a)
-                         else (ans, a)
-    where (ans, a) = f pc i acc
-          pc1 = cunbracket pc lvl
-          pc2 = cbracket pc lvl
-  (LGN _) -> error "Null in traversal!"
+traverseGraph lg@(LG _ n e _) pc i f acc = answ --Trace.trace (show i ++ ",") answ
+  where answ = case (n ! i) of
+          (LGA _ func arg) -> if ans then
+                                (if ansf then (ansa, a2) else (ansf, a1))
+                              else (ans, a)
+            where (ans, a) = f pc i acc
+                  (ansf, a1) = traverseGraph lg pc (e ! func) f a
+                  (ansa, a2) = traverseGraph lg pc (e ! arg) f a1
+          (LGL _ _ bdy) -> if ans then traverseGraph lg pc (e ! bdy) f a else (ans, a)
+            where (ans, a) = f pc i acc
+          (LGV _ _) -> f pc i acc
+          (LGF out str zro lvl) -> if ans then
+                                     (if i == out then traverseGraph lg pc1 (e ! ot) f a
+                                      else traverseGraph lg pc2 (e ! out) f a)
+                                   else (ans, a)
+            where (ans, a) = f pc i acc
+                  (isstr, pc1) = fanout pc lvl
+                  ot = if isstr then str else zro
+                  pc2 = fanin pc lvl (i == str)
+          (LGR bdy) -> if ans then traverseGraph lg pc (e ! bdy) f a else (ans, a)
+            where (ans, a) = f pc i acc
+          (LGB cin cout) -> if ans then
+                              (if i == cin then traverseGraph lg pc1 (e ! cout) f a
+                               else traverseGraph lg pc2 (e ! cin) f a)
+                            else (ans, a)
+            where (ans, a) = f pc i acc
+                  pc1 = unbracket pc 0
+                  pc2 = bracket pc 0
+          (LGRB cin cout lvl) -> if ans then
+                                   (if i == cin then traverseGraph lg pc1 (e ! cout) f a
+                                    else traverseGraph lg pc2 (e ! cin) f a)
+                                 else (ans, a)
+            where (ans, a) = f pc i acc
+                  pc1 = unbracket pc lvl
+                  pc2 = bracket pc lvl
+          (LGCB cin cout lvl) -> if ans then
+                                   (if i == cin then traverseGraph lg pc1 (e ! cout) f a
+                                    else traverseGraph lg pc2 (e ! cin) f a)
+                                 else (ans, a)
+            where (ans, a) = f pc i acc
+                  pc1 = cunbracket pc lvl
+                  pc2 = cbracket pc lvl
+          (LGN _) -> error "Null in traversal!"
           
 data BP = TwoArgs (Map.Map Int Int) (Exp -> Exp -> Exp)
         | OneArg (Map.Map Int Int) (Exp -> Exp)
@@ -631,8 +633,10 @@ applyRule lg r n = ans
                         (True, (n' - 1, [], lg))
 
 applyAnyRule :: LG -> [LRule] -> (String, [Int], LG)
-applyAnyRule lg rs = Debug.Trace.trace (nam ++ "\n") ans
-  where ans@(nam, _, _) = case traverseGraph lg emptyPC 0 (aprule lg) ("", [], lg) of
+applyAnyRule lg rs = ans --Trace.trace (nam ++ "\n" ++ show rlsa ++ "\n" ++
+                           --       graphString lg ++ "\n" ++
+                             --     expToString (buildProgram lg)) ans
+  where ans@(_, _, _) = case traverseGraph lg emptyPC 0 (aprule lg) ("", [], lg) of
           (_, (st, l, lg')) -> (st, l, lg')
         aprule :: LG -> PC -> Int -> (String, [Int], LG) -> (Bool, (String, [Int], LG))
         aprule _ _ i (_, _, _) = case foldl (funcfld lg i) ("", [], lg) rs of
@@ -654,6 +658,5 @@ diagramGraphWithHeading lg s scl h =
   square scl # fc black # lw 0))
   # frame (scl/60) # bg white
 
-  
 
   
